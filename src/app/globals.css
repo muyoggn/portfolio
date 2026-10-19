@@ -1,26 +1,45 @@
 @import "tailwindcss";
 
+/* サイト全体の色をここで決めています（CSS 変数）。
+   ここを変えるだけで、サイトの配色をまとめて変えられます。 */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --muted: #5f6368;
+  --line: #e5e7eb;
+  --surface: #f3f4f6;
+  --accent: #2563eb;
 }
 
+/* パソコンやスマホが「ダークモード」のときの色 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f1115;
+    --foreground: #ededed;
+    --muted: #9aa0a6;
+    --line: #2a2e36;
+    --surface: #1c1f26;
+    --accent: #60a5fa;
+  }
+}
+
+/* 上の色を Tailwind のクラス名（bg-accent, text-muted など）として使えるようにする */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-accent: var(--accent);
+  --font-sans: var(--font-noto-sans-jp), sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
