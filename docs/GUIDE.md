@@ -128,3 +128,40 @@ portfolio/
 | Noto Sans JP | 日本語がきれいに表示される無料フォント |
 
 今後、必要になったら追加候補：アニメーション（Framer Motion）、アイコン（lucide-react）、作品詳細を Markdown で書く仕組み（MDX）など。追加するときはここに理由を書き足します。
+
+---
+
+## 7. GitHub に保存する（ステップ③）
+
+GitHub は「コードの保管庫」です。保管庫ひとつひとつを **リポジトリ（repository、略してリポジトリ／レポ）** と呼びます。
+
+### あなたにやってほしいこと
+1. **GitHub アカウントを作る**：https://github.com/signup （ユーザー名は就活でも見られるので、本名に近いものや読みやすいものがおすすめ）
+2. **空のリポジトリを作る**：ログイン後、右上の「＋」→「New repository」
+   - Repository name：`portfolio`
+   - 公開範囲：**Public**（就活で見せられる。メールアドレスなどの秘密はコードに入れていないので公開して大丈夫）
+   - 「Add a README」などのチェックは **すべて外したまま**（中身はこちらから入れるため）
+   - 「Create repository」を押す
+3. **Claude と GitHub をつなぐ**：https://claude.ai/connect-github を開いて連携し、続けて「Claude」アプリをインストールする画面で、さきほどの `portfolio` リポジトリを選ぶ
+
+ここまで終わったらスレッドで教えてください。こちらで今あるコードと変更履歴をそのリポジトリにアップロード（**push／プッシュ**）します。
+
+### 用語メモ
+- **コミット（commit）**：変更を「セーブポイント」として記録すること。いつ・何を変えたかのメッセージを付ける
+- **プッシュ（push）**：手元のコミットを GitHub に送ること
+
+---
+
+## 8. Cloudflare で公開する（ステップ④）
+
+GitHub にコードが入ったら、Cloudflare に「このリポジトリが更新されたら自動でサイトを作り直して公開して」と設定します（**Workers Builds** という機能）。一度つなげば、以後はコードを GitHub に push するだけで公開サイトが更新されます。
+
+1. **Cloudflare アカウントを作る**：https://dash.cloudflare.com/sign-up
+2. ダッシュボード左メニュー「Workers & Pages」→「Create」→「Import a repository」（GitHub と連携を求められたら許可）
+3. `portfolio` リポジトリを選び、設定を次のようにする
+   - Project name：`portfolio`（`wrangler.jsonc` の `name` と同じにする）
+   - Build command：`npx opennextjs-cloudflare build`
+   - Deploy command：`npx opennextjs-cloudflare deploy`
+4. 「Deploy」を押すと数分で `https://portfolio.＜あなたのサブドメイン＞.workers.dev` という URL ができます
+
+詳しい手順は、GitHub への保存が終わった時点で画面に合わせて案内します。
