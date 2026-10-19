@@ -82,6 +82,8 @@ Next.js を Cloudflare で動かすために **OpenNext（@opennextjs/cloudflare
 
 ## 4. フォルダの中身（どこを触ればいいか）
 
+> **このセクションは覚えなくて大丈夫な「地図」です。** 今あなたが触るのは ★ の `profile.ts` だけ。色を変えたくなったら `globals.css`、写真を載せたくなったら `public/` に画像を置く、くらいです。設定ファイル（`next.config.ts`・`wrangler.jsonc` など）は触らなくてOKです。
+
 ```
 portfolio/
 ├── src/
