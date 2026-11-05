@@ -6,6 +6,7 @@ const navItems = [
   { href: "#about", label: "About" },
   { href: "#skills", label: "Skills" },
   { href: "#works", label: "Works" },
+  { href: "#career", label: "Career" },
   { href: "#contact", label: "Contact" },
 ];
 
@@ -17,7 +18,7 @@ export default function Header() {
           {profile.nameEn}
         </a>
         <nav>
-          <ul className="flex gap-4 text-sm text-muted">
+          <ul className="flex gap-3 text-xs text-muted sm:gap-4 sm:text-sm">
             {navItems.map((item) => (
               <li key={item.href}>
                 <a href={item.href} className="hover:text-foreground">
