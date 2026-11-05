@@ -43,7 +43,7 @@ function CareerList({
 
 // カード共通の見た目。マウスを乗せると少し浮き上がり、枠が緑になります
 const card =
-  "h-full rounded-xl border border-line bg-background/70 p-5 backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-accent hover:shadow-lg hover:shadow-accent/10";
+  "h-full rounded-xl border border-line bg-background/85 p-5 transition duration-300 hover:-translate-y-1 hover:border-accent hover:shadow-lg hover:shadow-accent/10";
 
 // トップページ（URL の「/」）です。
 // src/app/page.tsx というファイルの置き場所が、そのまま URL になります。

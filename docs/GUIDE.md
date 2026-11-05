@@ -194,7 +194,7 @@ GitHub にコードが入ったら、Cloudflare に「このリポジトリが�
 | 木漏れ日・光の粒（蛍） | `src/components/nature/Atmosphere.tsx` | 半透明のグラデーションや丸を CSS で動かす |
 | スクロールすると葉が奥行きをもって動く | `src/components/ScrollDepth.tsx` | スクロール量を CSS 変数 `--sy` に入れ、奥の葉ほどゆっくり動かす（**パララックス効果**） |
 | スクロールするとふわっと出てくる | `src/components/Reveal.tsx` | **IntersectionObserver**（要素が画面に入ったらブラウザが知らせてくれる）＋ CSS の `transition` |
-| ターミナルに文字が打ち込まれる | `src/components/Terminal.tsx` | React の **useState / useEffect** で 1 文字ずつ表示を増やす |
+| ターミナルに文字が打ち込まれる | `src/components/Terminal.tsx` | React の **useState / useEffect** で 1 文字ずつ表示を増やす。全部の行を最初から透明で置いて枠の高さを固定し、結果の行はフェードインさせる（ガタつき防止） |
 | カードにマウスを乗せると浮く | `src/app/page.tsx` | Tailwind の `hover:` と `transition` |
 
 植物を増やしたい・減らしたいときは、`Foliage.tsx` の配列に `fern(...)` や `flower(...)` を 1 行足したり消したりするだけで OK です。
@@ -206,4 +206,6 @@ GitHub にコードが入ったら、Cloudflare に「このリポジトリが�
 - **SVG**：線や図形を「座標」で描く画像形式。拡大してもぼやけず、CSS で色や動きを付けられる
 - **パララックス**：手前のものは速く、奥のものはゆっくり動かすことで、立体的な奥行きを感じさせる演出
 - **@keyframes**：CSS で「最初はこう → 最後はこう」とアニメーションの流れを決める書き方
+- **レイアウトシフト**：表示中に要素の大きさが変わって、まわりがガタッと動くこと。アニメーションがカクついて見える大きな原因なので、先に場所を確保しておくのがコツ
+- **backdrop-blur**：後ろをすりガラスのようにぼかす効果。きれいだが、後ろで何かが動いていると毎回ぼかし直すので重くなる
 - **prefers-reduced-motion**：OS で「動きを減らす」を選んでいる人向けに、アニメーションを止める設定。見る人への配慮として入れています
