@@ -26,7 +26,7 @@ export default function Terminal({ lines }: { lines: Line[] }) {
   }, [step, typed, lines]);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-line bg-terminal font-mono text-sm text-terminal-text shadow-lg shadow-accent/10">
+    <div className="overflow-hidden rounded-xl border border-line bg-terminal/90 font-mono backdrop-blur text-sm text-terminal-text shadow-lg shadow-accent/10">
       {/* ウィンドウ上部の 3 つの丸 */}
       <div className="flex gap-1.5 border-b border-white/10 px-4 py-3">
         <span className="h-3 w-3 rounded-full bg-[#e0796b]" />

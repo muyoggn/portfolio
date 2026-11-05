@@ -1,32 +1,47 @@
 @import "tailwindcss";
 
 /* サイト全体の色をここで決めています（CSS 変数）。
-   テーマは「エンジニア × 観葉植物」。生成り（クリーム）色の紙に、葉っぱの緑と植木鉢のテラコッタ色。
+   テーマは「森の中のエンジニア」。木漏れ日のさす森の緑に、回路のように光る葉脈とターミナル。
    ここを変えるだけで、サイトの配色をまとめて変えられます。 */
 :root {
-  --background: #f6f4ec;
-  --foreground: #1e2a22;
-  --muted: #5d6b61;
-  --line: #dce2d4;
-  --surface: #eaeee2;
-  --accent: #3d7a4c; /* 葉っぱの緑 */
-  --pot: #c27a52; /* 植木鉢のテラコッタ */
-  --terminal: #17221b; /* ターミナルの背景（深い森の色） */
+  --background: #eef3ec; /* 朝の森の、少し緑がかった空気 */
+  --foreground: #14241a;
+  --muted: #526457;
+  --line: #d2ded1;
+  --surface: #e1eadf;
+  --accent: #2f7a4a;
+  --terminal: #13201a;
   --terminal-text: #dfe9df;
   --leaf: #7cc48f; /* ターミナル内の明るい緑 */
+  /* 葉っぱの色：1 が奥（空気にかすんで薄い）… 4 が手前（濃い） */
+  --leaf-1: #b5d3b6;
+  --leaf-2: #7fb48a;
+  --leaf-3: #4b8c5c;
+  --leaf-4: #24563a;
+  --vein: rgba(255, 255, 255, 0.35); /* 葉脈 */
+  --ray: rgba(255, 248, 214, 0.75); /* 木漏れ日 */
+  --particle: #fff3b8; /* 花粉の粒 */
+  --sun: #fffbe6;
 }
 
-/* パソコンやスマホが「ダークモード」のときの色（夜の温室のイメージ） */
+/* ダークモードは「夜の森」。手前の葉はシルエットになり、葉脈が回路のように光り、蛍が飛びます */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0f1712;
-    --foreground: #e4ece4;
-    --muted: #93a297;
-    --line: #26332a;
-    --surface: #18231c;
+    --background: #08110c;
+    --foreground: #e2ece3;
+    --muted: #8fa394;
+    --line: #1c2a21;
+    --surface: #101b14;
     --accent: #7cc48f;
-    --pot: #d08a62;
-    --terminal: #0a110d;
+    --terminal: #050b08;
+    --leaf-1: #11231a;
+    --leaf-2: #173123;
+    --leaf-3: #1d3d2b;
+    --leaf-4: #0b1a11;
+    --vein: rgba(124, 196, 143, 0.55);
+    --ray: rgba(170, 255, 200, 0.07);
+    --particle: #d8ff7a;
+    --sun: #10241a;
   }
 }
 
@@ -38,7 +53,6 @@
   --color-line: var(--line);
   --color-surface: var(--surface);
   --color-accent: var(--accent);
-  --color-pot: var(--pot);
   --color-terminal: var(--terminal);
   --color-terminal-text: var(--terminal-text);
   --color-leaf: var(--leaf);
@@ -83,58 +97,91 @@ body {
   }
 }
 
-/* 植物：茎が下から伸びる（線の「描かれる長さ」を 0 → 全部 にする） */
-.stem {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-dasharray: 200;
-  stroke-dashoffset: 200;
-  animation: grow 1.2s ease-out forwards;
+/* ===== 森の動き ===== */
+
+/* 枝が風でゆれる（根元を支点に、ゆっくり左右に回転） */
+.sway {
+  animation: sway 6s ease-in-out infinite alternate;
 }
-@keyframes grow {
+@keyframes sway {
+  from {
+    rotate: -2deg;
+  }
   to {
-    stroke-dashoffset: 0;
+    rotate: 2deg;
   }
 }
 
-/* 植物：葉が小さい状態からポンと開く */
-.leaf {
-  fill: var(--accent);
+/* ページを開いたとき、枝がぐっと伸びて出てくる */
+.grow {
   opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: unfold 0.6s ease-out forwards;
+  scale: 0.4;
+  animation: grow 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
-@keyframes unfold {
-  from {
-    opacity: 0;
-    scale: 0;
-  }
+@keyframes grow {
   to {
-    opacity: 0.9;
+    opacity: 1;
     scale: 1;
   }
 }
 
-/* 植物：風に吹かれてゆらゆら */
-.sway {
-  transform-origin: 100px 200px;
-  animation: sway 6s ease-in-out 2s infinite;
+/* 葉脈：回路の配線のような細い光の線 */
+.vein {
+  fill: none;
+  stroke: var(--vein);
+  stroke-width: 2.5;
 }
-@keyframes sway {
-  0%,
-  100% {
-    rotate: 0deg;
-  }
-  50% {
-    rotate: 2.5deg;
+
+/* スクロール量（--sy）× 奥行き（--depth）だけ下にずらす → 奥のものほどゆっくり動いて見える */
+.parallax {
+  transform: translate3d(0, calc(var(--sy, 0) * var(--depth, 0) * 1px), 0);
+  will-change: transform;
+}
+
+/* 木漏れ日：斜めにさす光の筋が、ゆっくり明るくなったり暗くなったりする */
+.ray {
+  position: absolute;
+  top: -20%;
+  height: 140%;
+  background: linear-gradient(to bottom, var(--ray), transparent 75%);
+  rotate: 22deg;
+  filter: blur(10px);
+  opacity: 0.2;
+  animation: shimmer 7s ease-in-out infinite alternate;
+}
+@keyframes shimmer {
+  to {
+    opacity: 0.9;
   }
 }
 
-.fill-pot {
-  fill: var(--pot);
+/* 光の粒（花粉・蛍）：ふわっと現れて、ゆらゆら上へ漂って消える */
+.firefly {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--particle);
+  box-shadow: 0 0 10px 2px var(--particle);
+  opacity: 0;
+  animation: drift 10s ease-in-out infinite;
+}
+@keyframes drift {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  50% {
+    translate: 18px -50px;
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    translate: -10px -110px;
+  }
 }
 
 /* 「動きを減らす」設定にしている人には、アニメーションを止めて最初から完成形を見せる */
@@ -143,14 +190,20 @@ body {
     scroll-behavior: auto;
   }
   .reveal,
-  .stem,
-  .leaf,
+  .grow,
   .sway,
   .cursor {
     animation: none;
     transition: none;
     opacity: 1;
     transform: none;
-    stroke-dashoffset: 0;
+    scale: none;
+  }
+  .ray,
+  .firefly {
+    display: none;
+  }
+  .parallax {
+    transform: none;
   }
 }
