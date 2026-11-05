@@ -1,299 +1,131 @@
-import Branch, { type BranchData } from "./Branch";
+import Plant, { type LeafShape, type PlantData } from "./Plants";
 
-// 画面のまわりを囲む「葉っぱのかたまり」を、場所ごとに 1 つの SVG にまとめています。
-// どの位置にどんな枝を生やすかは、下の配列（データ）で決めています。
+// 画面のまわりを囲む植物を、場所ごとに 1 つの SVG にまとめています。
+// 「どこに・どの植物を・どの向きで」生やすかは、下の配列（データ）で決めています。
+// 植物を増やしたいときは、配列に 1 行足すだけで OK です。
 
-// 左端から右向きに伸びる枝たち（右側は同じ形を左右反転して使い、少し変化をつける）
-const side: BranchData[] = [
-  {
-    x: -30,
-    y: 520,
-    angle: 70,
-    length: 300,
-    curve: -50,
-    count: 6,
-    leafSize: 70,
-    layer: 1,
-  },
-  {
-    x: -20,
-    y: 900,
-    angle: 25,
-    length: 520,
-    curve: 90,
-    count: 8,
-    leafSize: 80,
-    layer: 2,
-  },
-  {
-    x: -30,
-    y: 300,
-    angle: 115,
-    length: 320,
-    curve: 50,
-    count: 6,
-    leafSize: 65,
-    layer: 2,
-  },
-  {
-    x: -30,
-    y: 700,
-    angle: 55,
-    length: 380,
-    curve: -70,
-    count: 7,
-    leafSize: 75,
-    layer: 3,
-  },
-  {
-    x: -20,
-    y: 80,
-    angle: 140,
-    length: 260,
-    curve: -40,
-    count: 5,
-    leafSize: 70,
-    layer: 4,
-  },
-  {
-    x: -50,
-    y: 820,
-    angle: 75,
-    length: 260,
-    curve: 40,
-    count: 5,
-    leafSize: 90,
-    layer: 4,
-  },
+type Layer = 1 | 2 | 3 | 4;
+
+// ---- 植物ごとの「作り方」をまとめた小さな関数（毎回すべての数字を書かずに済むように） ----
+// 引数：x, y = 根元の位置 / angle = 向き / length = 長さ / curve = しなり / layer = 奥行き
+const vine = (x: number, y: number, angle: number, length: number, curve: number, layer: Layer, leaf: LeafShape = "pointed"): PlantData => ({
+  kind: "branch", x, y, angle, length, curve, layer, leaf,
+  count: Math.round(length / 55),
+  leafSize: leaf === "heart" ? 55 : leaf === "round" ? 50 : 75,
+  spread: leaf === "round" ? 75 : 55,
+  opposite: leaf === "round", // ユーカリは葉が対になって並ぶ
+});
+const fern = (x: number, y: number, angle: number, length: number, curve: number, layer: Layer): PlantData => ({
+  kind: "branch", x, y, angle, length, curve, layer, leaf: "narrow", opposite: true,
+  count: Math.round(length / 18), leafSize: 30, spread: 65,
+});
+const palm = (x: number, y: number, angle: number, length: number, curve: number, layer: Layer): PlantData => ({
+  kind: "branch", x, y, angle, length, curve, layer, leaf: "narrow", opposite: true,
+  count: Math.round(length / 24), leafSize: 95, spread: 58,
+});
+const monstera = (x: number, y: number, angle: number, size: number, layer: Layer): PlantData => ({ kind: "monstera", x, y, angle, size, layer });
+const grass = (x: number, y: number, height: number, layer: Layer, blades = 7): PlantData => ({ kind: "grass", x, y, angle: 0, height, blades, layer });
+const flower = (x: number, y: number, size: number, color: 1 | 2 | 3, layer: Layer = 3): PlantData => ({ kind: "flower", x, y, angle: (x % 3) * 6 - 6, size, color, layer });
+
+// 左端から右向きに伸びる植物たち（viewBox 420×900）
+const left: PlantData[] = [
+  palm(-30, 640, 58, 440, -90, 1),
+  vine(-20, 380, 98, 300, 40, 1, "round"),
+  vine(-20, 900, 25, 520, 90, 2),
+  vine(-30, 250, 122, 330, 50, 2, "heart"),
+  fern(-20, 560, 78, 280, -40, 3),
+  monstera(-10, 770, 55, 170, 3),
+  vine(-20, 70, 142, 260, -40, 4),
+  monstera(-50, 920, 32, 220, 4),
+  grass(20, 905, 170, 4, 8),
 ];
 
-const sideRight: BranchData[] = [
-  {
-    x: -30,
-    y: 420,
-    angle: 80,
-    length: 280,
-    curve: 60,
-    count: 6,
-    leafSize: 65,
-    layer: 1,
-  },
-  {
-    x: -20,
-    y: 880,
-    angle: 35,
-    length: 460,
-    curve: -80,
-    count: 7,
-    leafSize: 80,
-    layer: 2,
-  },
-  {
-    x: -30,
-    y: 200,
-    angle: 125,
-    length: 300,
-    curve: -40,
-    count: 6,
-    leafSize: 65,
-    layer: 3,
-  },
-  {
-    x: -40,
-    y: 640,
-    angle: 65,
-    length: 300,
-    curve: 60,
-    count: 6,
-    leafSize: 85,
-    layer: 4,
-  },
+// 右端（同じ viewBox を左右反転して使う。左とは違う組み合わせにして単調にならないように）
+const right: PlantData[] = [
+  palm(-20, 480, 72, 400, 80, 1),
+  vine(-30, 860, 40, 460, -80, 2),
+  vine(-30, 140, 132, 300, -40, 2, "heart"),
+  vine(-20, 690, 62, 320, -50, 2, "round"),
+  monstera(-30, 420, 88, 150, 3),
+  fern(-10, 900, 38, 320, 60, 4),
+  monstera(-40, 640, 66, 180, 4),
 ];
 
-// 上からたれ下がる枝（angle 180 前後 = 下向き）
-const canopy: BranchData[] = [
-  {
-    x: 180,
-    y: -20,
-    angle: 200,
-    length: 200,
-    curve: 40,
-    count: 6,
-    leafSize: 55,
-    layer: 1,
-  },
-  {
-    x: 520,
-    y: -30,
-    angle: 170,
-    length: 170,
-    curve: -30,
-    count: 5,
-    leafSize: 50,
-    layer: 1,
-  },
-  {
-    x: 900,
-    y: -30,
-    angle: 190,
-    length: 160,
-    curve: 30,
-    count: 5,
-    leafSize: 50,
-    layer: 2,
-  },
-  {
-    x: 1250,
-    y: -20,
-    angle: 160,
-    length: 220,
-    curve: -40,
-    count: 6,
-    leafSize: 60,
-    layer: 2,
-  },
-  {
-    x: 340,
-    y: -40,
-    angle: 185,
-    length: 140,
-    curve: 20,
-    count: 4,
-    leafSize: 60,
-    layer: 3,
-  },
-  {
-    x: 1080,
-    y: -40,
-    angle: 175,
-    length: 130,
-    curve: -20,
-    count: 4,
-    leafSize: 60,
-    layer: 3,
-  },
+// 上からたれ下がる植物（angle 180 前後 = 下向き。viewBox 1440×260）
+const canopy: PlantData[] = [
+  palm(30, -40, 145, 320, -60, 1),
+  palm(1410, -40, 215, 320, 60, 1),
+  vine(180, -20, 195, 220, 40, 1, "heart"),
+  vine(520, -30, 172, 190, -30, 1, "round"),
+  vine(900, -30, 188, 170, 30, 2, "heart"),
+  vine(1250, -20, 160, 220, -40, 2),
+  vine(700, -30, 182, 120, 20, 2, "round"),
+  vine(340, -40, 185, 150, 20, 3, "heart"),
+  vine(1080, -40, 175, 140, -20, 3),
 ];
 
-// 足元のシダ（細かい葉がたくさん並ぶ）
-const fernX = [-40, 40, 120, 200, 290, 370, 460, 540, 630, 720, 800, 890, 980, 1060, 1150, 1240, 1320, 1410, 1480];
-const ferns: BranchData[] = fernX.map((x, i) => ({
-  x,
-  y: 210,
-  angle: (i % 2 === 0 ? -1 : 1) * (10 + (i % 3) * 9),
-  length: 110 + (i % 4) * 22,
-  curve: (i % 2 === 0 ? 1 : -1) * 25,
-  count: 11,
-  leafSize: 24,
-  // 奥（薄い色）と手前（濃い色）を混ぜて、茂みに奥行きを出す
-  layer: ([1, 3, 2, 4] as const)[i % 4],
-}));
+// 足元：シダ・草・小さな花・低いモンステラを混ぜた茂み（viewBox 1440×210）
+const ground: PlantData[] = [
+  monstera(250, 215, -14, 120, 2),
+  monstera(1180, 215, 16, 110, 2),
+  ...[-40, 120, 290, 460, 630, 800, 980, 1150, 1320, 1480].map((x, i) =>
+    fern(x, 212, (i % 2 === 0 ? -1 : 1) * (10 + (i % 3) * 9), 120 + (i % 4) * 20, (i % 2 === 0 ? 1 : -1) * 25, ([1, 3, 2, 4] as const)[i % 4]),
+  ),
+  ...[40, 200, 380, 540, 720, 890, 1060, 1240, 1400].map((x, i) => grass(x, 214, 70 + (i % 3) * 25, ([3, 4, 2] as const)[i % 3])),
+  flower(90, 212, 13, 1),
+  flower(330, 212, 11, 2),
+  flower(560, 212, 12, 3),
+  flower(860, 212, 11, 1),
+  flower(1010, 212, 13, 2),
+  flower(1290, 212, 12, 3),
+];
 
-function Cluster({
-  data,
-  viewBox,
-  className,
-  preserve,
-}: {
-  data: BranchData[];
-  viewBox: string;
-  className: string;
-  preserve?: string;
-}) {
+function Cluster({ data, viewBox, className, preserve }: { data: PlantData[]; viewBox: string; className: string; preserve?: string }) {
   return (
-    <svg
-      viewBox={viewBox}
-      preserveAspectRatio={preserve}
-      className={className}
-      aria-hidden="true"
-    >
-      {data.map((b, i) => (
-        <Branch key={i} data={b} index={i} />
+    <svg viewBox={viewBox} preserveAspectRatio={preserve} className={className} aria-hidden="true">
+      {data.map((p, i) => (
+        <Plant key={i} data={p} index={i} />
       ))}
     </svg>
   );
 }
 
-// ヒーロー（最初の画面）をぐるっと囲む葉っぱ。depth はスクロール時に動く速さ（奥行き感）
+const depth = (d: number) => ({ "--depth": d }) as React.CSSProperties;
+
+// ヒーロー（最初の画面）をぐるっと囲む植物。depth はスクロール時に動く速さ（奥行き感）
 export function HeroFoliage() {
   return (
-    <div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
-      aria-hidden="true"
-    >
-      <div
-        className="parallax absolute inset-y-0 left-0"
-        style={{ "--depth": 0.25 } as React.CSSProperties}
-      >
-        <Cluster
-          data={side}
-          viewBox="0 0 420 900"
-          className="h-full w-auto -translate-x-[45%] opacity-80 sm:translate-x-0 sm:opacity-100"
-          preserve="xMinYMid meet"
-        />
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div className="parallax absolute inset-y-0 left-0" style={depth(0.25)}>
+        <Cluster data={left} viewBox="0 0 420 900" preserve="xMinYMid meet" className="h-full w-auto -translate-x-[45%] opacity-80 sm:translate-x-0 sm:opacity-100" />
       </div>
-      <div
-        className="parallax absolute inset-y-0 right-0"
-        style={{ "--depth": 0.35 } as React.CSSProperties}
-      >
-        <Cluster
-          data={sideRight}
-          viewBox="0 0 420 900"
-          className="h-full w-auto translate-x-[45%] -scale-x-100 opacity-80 sm:translate-x-0 sm:opacity-100"
-          preserve="xMinYMid meet"
-        />
+      <div className="parallax absolute inset-y-0 right-0" style={depth(0.35)}>
+        <Cluster data={right} viewBox="0 0 420 900" preserve="xMinYMid meet" className="h-full w-auto translate-x-[45%] -scale-x-100 opacity-80 sm:translate-x-0 sm:opacity-100" />
       </div>
-      <div
-        className="parallax absolute inset-x-0 top-0"
-        style={{ "--depth": 0.15 } as React.CSSProperties}
-      >
-        <Cluster
-          data={canopy}
-          viewBox="0 0 1440 260"
-          className="h-40 w-full sm:h-56"
-          preserve="xMidYMin slice"
-        />
+      <div className="parallax absolute inset-x-0 top-0" style={depth(0.15)}>
+        <Cluster data={canopy} viewBox="0 0 1440 260" preserve="xMidYMin slice" className="h-40 w-full sm:h-56" />
       </div>
       <div className="absolute inset-x-0 bottom-0">
-        <Ferns />
+        <Ground />
       </div>
     </div>
   );
 }
 
-// 足元のシダの列（ヒーローの下と、ページのいちばん下で使う）
-export function Ferns({ className = "h-24 sm:h-44" }: { className?: string }) {
-  return (
-    <Cluster
-      data={ferns}
-      viewBox="0 0 1440 230"
-      className={`w-full ${className}`}
-      preserve="xMidYMax slice"
-    />
-  );
+// 足元の茂み（ヒーローの下と、ページのいちばん下で使う）
+export function Ground({ className = "h-24 sm:h-44" }: { className?: string }) {
+  return <Cluster data={ground} viewBox="0 0 1440 210" preserve="xMidYMax slice" className={`w-full ${className}`} />;
 }
 
-// スクロール中も画面の両端からのぞく葉っぱ（大きい画面のときだけ表示）
+// スクロール中も画面の両端からのぞく植物（大きい画面のときだけ表示）
 export function SideFoliage() {
   return (
-    <div
-      className="pointer-events-none fixed inset-y-0 left-0 right-0 -z-10 hidden lg:block"
-      aria-hidden="true"
-    >
+    <div className="pointer-events-none fixed inset-0 -z-10 hidden lg:block" aria-hidden="true">
       <div className="absolute bottom-0 left-0 h-[70vh] opacity-40">
-        <Cluster
-          data={side.slice(0, 4)}
-          viewBox="0 0 420 900"
-          className="h-full w-auto"
-          preserve="xMinYMax meet"
-        />
+        <Cluster data={left.slice(0, 6)} viewBox="0 0 420 900" preserve="xMinYMax meet" className="h-full w-auto" />
       </div>
       <div className="absolute right-0 top-[20vh] h-[70vh] opacity-40">
-        <Cluster
-          data={sideRight.slice(0, 3)}
-          viewBox="0 0 420 900"
-          className="h-full w-auto -scale-x-100"
-          preserve="xMinYMid meet"
-        />
+        <Cluster data={right.slice(0, 5)} viewBox="0 0 420 900" preserve="xMinYMid meet" className="h-full w-auto -scale-x-100" />
       </div>
     </div>
   );

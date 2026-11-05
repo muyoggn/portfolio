@@ -22,6 +22,11 @@
   --ray: rgba(255, 248, 214, 0.75); /* 木漏れ日 */
   --particle: #fff3b8; /* 花粉の粒 */
   --sun: #fffbe6;
+  /* 小さな花の色（白・ピンク・黄色）と花の中心 */
+  --flower-1: #ffffff;
+  --flower-2: #f6b4c6;
+  --flower-3: #ffd45e;
+  --flower-center: #e3a13a;
 }
 
 /* ダークモードは「夜の森」。手前の葉はシルエットになり、葉脈が回路のように光り、蛍が飛びます */
@@ -42,6 +47,10 @@
     --ray: rgba(170, 255, 200, 0.07);
     --particle: #d8ff7a;
     --sun: #10241a;
+    --flower-1: #b9d6c2;
+    --flower-2: #9c6f80;
+    --flower-3: #b89a45;
+    --flower-center: #6f5a28;
   }
 }
 

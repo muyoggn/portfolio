@@ -1,6 +1,6 @@
 import Header from "@/components/Header";
 import { Fireflies, SunRays } from "@/components/nature/Atmosphere";
-import { Ferns, HeroFoliage, SideFoliage } from "@/components/nature/Foliage";
+import { Ground, HeroFoliage, SideFoliage } from "@/components/nature/Foliage";
 import Reveal from "@/components/Reveal";
 import ScrollDepth from "@/components/ScrollDepth";
 import Section from "@/components/Section";
@@ -197,8 +197,8 @@ export default function Home() {
           </Section>
         </div>
       </main>
-      {/* ページのいちばん下も、シダの茂みで締めくくる */}
-      <Ferns className="h-20 sm:h-36" />
+      {/* ページのいちばん下も、植物の茂みで締めくくる */}
+      <Ground className="h-20 sm:h-36" />
       <footer className="bg-[var(--leaf-4)] py-6 text-center font-mono text-xs text-white/80">
         © {new Date().getFullYear()} {profile.nameEn} · grown with Next.js 🌱
       </footer>
