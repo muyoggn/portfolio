@@ -1,25 +1,56 @@
 @import "tailwindcss";
 
 /* サイト全体の色をここで決めています（CSS 変数）。
+   テーマは「森の中のエンジニア」。木漏れ日のさす森の緑に、回路のように光る葉脈とターミナル。
    ここを変えるだけで、サイトの配色をまとめて変えられます。 */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #5f6368;
-  --line: #e5e7eb;
-  --surface: #f3f4f6;
-  --accent: #2563eb;
+  --background: #eef3ec; /* 朝の森の、少し緑がかった空気 */
+  --foreground: #14241a;
+  --muted: #526457;
+  --line: #d2ded1;
+  --surface: #e1eadf;
+  --accent: #2f7a4a;
+  --terminal: #13201a;
+  --terminal-text: #dfe9df;
+  --leaf: #7cc48f; /* ターミナル内の明るい緑 */
+  /* 葉っぱの色：1 が奥（空気にかすんで薄い）… 4 が手前（濃い） */
+  --leaf-1: #b5d3b6;
+  --leaf-2: #7fb48a;
+  --leaf-3: #4b8c5c;
+  --leaf-4: #24563a;
+  --vein: rgba(255, 255, 255, 0.35); /* 葉脈 */
+  --ray: rgba(255, 248, 214, 0.75); /* 木漏れ日 */
+  --particle: #fff3b8; /* 花粉の粒 */
+  --sun: #fffbe6;
+  /* 小さな花の色（白・ピンク・黄色）と花の中心 */
+  --flower-1: #ffffff;
+  --flower-2: #f6b4c6;
+  --flower-3: #ffd45e;
+  --flower-center: #e3a13a;
 }
 
-/* パソコンやスマホが「ダークモード」のときの色 */
+/* ダークモードは「夜の森」。手前の葉はシルエットになり、葉脈が回路のように光り、蛍が飛びます */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0f1115;
-    --foreground: #ededed;
-    --muted: #9aa0a6;
-    --line: #2a2e36;
-    --surface: #1c1f26;
-    --accent: #60a5fa;
+    --background: #08110c;
+    --foreground: #e2ece3;
+    --muted: #8fa394;
+    --line: #1c2a21;
+    --surface: #101b14;
+    --accent: #7cc48f;
+    --terminal: #050b08;
+    --leaf-1: #11231a;
+    --leaf-2: #173123;
+    --leaf-3: #1d3d2b;
+    --leaf-4: #0b1a11;
+    --vein: rgba(124, 196, 143, 0.55);
+    --ray: rgba(170, 255, 200, 0.07);
+    --particle: #d8ff7a;
+    --sun: #10241a;
+    --flower-1: #b9d6c2;
+    --flower-2: #9c6f80;
+    --flower-3: #b89a45;
+    --flower-center: #6f5a28;
   }
 }
 
@@ -31,6 +62,9 @@
   --color-line: var(--line);
   --color-surface: var(--surface);
   --color-accent: var(--accent);
+  --color-terminal: var(--terminal);
+  --color-terminal-text: var(--terminal-text);
+  --color-leaf: var(--leaf);
   --font-sans: var(--font-noto-sans-jp), sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 }
@@ -42,4 +76,159 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
+  /* うっすらとした方眼紙のドット模様（エンジニアのノートっぽさ） */
+  background-image: radial-gradient(var(--line) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ===== アニメーション ===================================== */
+
+/* スクロールで浮かび上がる（Reveal 部品が is-visible を付ける） */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ターミナルの結果の行：下から少し浮かびながらフェードイン */
+.term-out {
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+.term-out.is-shown {
+  opacity: 0.8;
+  transform: none;
+}
+
+/* ターミナルの点滅カーソル */
+.cursor {
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ===== 森の動き ===== */
+
+/* 枝が風でゆれる（根元を支点に、ゆっくり左右に回転） */
+.sway {
+  animation: sway 6s ease-in-out infinite alternate;
+}
+@keyframes sway {
+  from {
+    rotate: -2deg;
+  }
+  to {
+    rotate: 2deg;
+  }
+}
+
+/* ページを開いたとき、枝がぐっと伸びて出てくる */
+.grow {
+  opacity: 0;
+  scale: 0.4;
+  animation: grow 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes grow {
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* 葉脈：回路の配線のような細い光の線 */
+.vein {
+  fill: none;
+  stroke: var(--vein);
+  stroke-width: 2.5;
+}
+
+/* スクロール量（--sy）× 奥行き（--depth）だけ下にずらす → 奥のものほどゆっくり動いて見える */
+.parallax {
+  transform: translate3d(0, calc(var(--sy, 0) * var(--depth, 0) * 1px), 0);
+  will-change: transform;
+}
+
+/* 木漏れ日：斜めにさす光の筋が、ゆっくり明るくなったり暗くなったりする */
+.ray {
+  position: absolute;
+  top: -20%;
+  height: 140%;
+  background: linear-gradient(to bottom, var(--ray), transparent 75%);
+  rotate: 22deg;
+  filter: blur(10px);
+  opacity: 0.2;
+  animation: shimmer 7s ease-in-out infinite alternate;
+}
+@keyframes shimmer {
+  to {
+    opacity: 0.9;
+  }
+}
+
+/* 光の粒（花粉・蛍）：ふわっと現れて、ゆらゆら上へ漂って消える */
+.firefly {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--particle);
+  box-shadow: 0 0 10px 2px var(--particle);
+  opacity: 0;
+  animation: drift 10s ease-in-out infinite;
+}
+@keyframes drift {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  50% {
+    translate: 18px -50px;
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    translate: -10px -110px;
+  }
+}
+
+/* 「動きを減らす」設定にしている人には、アニメーションを止めて最初から完成形を見せる */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .term-out {
+    transition: none;
+  }
+  .reveal,
+  .grow,
+  .sway,
+  .cursor {
+    animation: none;
+    transition: none;
+    opacity: 1;
+    transform: none;
+    scale: none;
+  }
+  .ray,
+  .firefly {
+    display: none;
+  }
+  .parallax {
+    transform: none;
+  }
 }
