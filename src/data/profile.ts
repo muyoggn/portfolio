@@ -36,9 +36,9 @@ export const profile = {
   role: "工学院大学 情報学部 情報科学科 3年",
   catchCopy: "作りながら学ぶ、学んだことを形に残す。",
   about: [
-    "工学院大学 情報学部 情報科学科の3年生です。社会シミュレーション研究室（八木研究室）に所属し、研究では Java を使っています。",
-    "授業で Python や C 言語を学び、Unity（C#）にも触れてきました。このサイトは Next.js・React・TypeScript・Tailwind CSS を学びながら作った、最初の Web 制作物です。",
-    "趣味は観葉植物を育てることと料理です。",
+    "工学院大学 情報学部 情報科学科の3年生です。社会シミュレーション研究室（八木研）に所属し、研究では Java を使った人工市場による金融市場のシミュレーションをしています。",
+    "授業で Python や C 言語、HTML、CSS、JavaScriptを学び、Unity（C#）にも触れてきました。このサイトは Next.js・React・TypeScript・Tailwind CSS を学びながら作った、最初の Web 制作物です。",
+    "趣味は観葉植物を育てることと料理をすることです。",
   ],
   links: {
     github: "https://github.com/muyoggn",
@@ -90,19 +90,19 @@ export const works: Work[] = [
 // 学歴（新しいものが上）
 export const education: CareerItem[] = [
   {
-    period: "2024.4 – 現在",
+    period: "2024.04 – 現在",
     title: "工学院大学 情報学部 情報科学科",
     note: "社会シミュレーション研究室（八木研究室）所属",
   },
-  { period: "2021.4 – 2024.3", title: "明秀学園日立高等学校 特進STクラス" },
+  { period: "2021.04 – 2024.03", title: "明秀学園日立高等学校 特進STクラス" },
 ];
 
 // アルバイトなど
 export const experience: CareerItem[] = [
-  { period: "在学中", title: "焼肉 平城苑 八王子店", note: "アルバイト" },
+  { period: "2024.05 – 現在", title: "焼肉 平城苑 八王子店", note: "アルバイト" },
 ];
 
 // 資格
 export const certifications: CareerItem[] = [
-  { period: "高校2年", title: "実用英語技能検定 2級 合格" },
+  { period: "2022.07", title: "実用英語技能検定 2級 合格" },
 ];
