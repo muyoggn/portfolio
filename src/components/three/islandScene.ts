@@ -228,43 +228,102 @@ export function createIslandScene(
   //
   // 花びらの動かし方：花びらを「ちょうつがい（pivot）」のグループに入れ、
   // ちょうつがいの角度を「上向き（つぼみ）」→「横向き（満開）」へ変えると、花が開いて見えます。
+  //
+  // 自然に見せる工夫：
+  //   ・花は「群れ（群生）」で生える。群れの場所・花の数・それぞれの位置はばらばら（シード付き乱数）
+  //   ・茎の高さ、花の大きさ、花びらの枚数（5 か 6）、傾きも 1 本ずつ違う
+  //   ・茎には葉が付き、根元にも小さな葉が広がる
+  //   ・咲くタイミングと周期も 1 本ずつ違うので、いっせいに同じ動きをしない
   const FLOWER_COLORS = ["#ffffff", "#f6b4c6", "#ffd45e", "#c9b6f2"];
   const petalMats = FLOWER_COLORS.map((c) => new MeshStandardMaterial({ color: c, roughness: 0.7 }));
   const centerMat = new MeshStandardMaterial({ color: "#e3a13a", roughness: 0.6 });
-  const stemGeo = new CylinderGeometry(0.02, 0.028, 0.4, 5).translate(0, 0.2, 0); // 根元を (0,0,0) にそろえる
+  const stemGeo = new CylinderGeometry(0.016, 0.024, 1, 5).translate(0, 0.5, 0); // 高さ 1、根元が (0,0,0)。高さは scale で変える
   // 花びら：球を平たく細長くつぶし、根元がちょうつがいの位置に来るように少しずらす
-  const petalGeo = new SphereGeometry(0.085, 8, 5).scale(1, 0.3, 1.7).translate(0, 0, 0.13);
-  const centerGeo = new SphereGeometry(0.055, 8, 6);
-  const PETALS = 5;
+  const petalGeo = new SphereGeometry(0.075, 8, 5).scale(1, 0.3, 1.7).translate(0, 0, 0.115);
+  const centerGeo = new SphereGeometry(0.05, 8, 6);
+  // 葉：花びらと同じ作り方で、細長い葉っぱの形にする
+  const leafGeo = new SphereGeometry(0.05, 6, 4).scale(0.8, 0.25, 2.4).translate(0, 0, 0.11);
   const OPEN = -0.2; // 満開のときの花びらの角度（ほぼ横向き）
   const CLOSED = -1.4; // つぼみのときの角度（上向きに閉じている）
 
-  // 花を植える場所（木やノートPCとぶつからないところ）
-  const spots = [
-    [-1.6, -0.3], [-1.2, 1.0], [-0.1, 1.9], [0.9, 1.75], [1.9, 0.9],
-    [2.0, -0.4], [0.5, -1.6], [-0.4, -1.9], [-1.9, -1.0], [0.15, 0.35],
+  // 花を植えてはいけない場所（木・針葉樹・岩・ノートPC・鉢植え）。[x, z, 半径]
+  const blocked = [
+    [-0.6, -0.5, 0.65], [0.35, 1.15, 0.6], [1.0, 0.55, 0.35], [1.45, -0.9, 0.5],
+    [1.85, 0.2, 0.4], [-1.75, 0.5, 0.45], [1.25, 1.25, 0.4], [-1.5, 1.25, 0.3],
   ];
-  const flowers = spots.map(([x, z], i) => {
+  const free = (x: number, z: number) =>
+    Math.hypot(x, z) < 2.25 && blocked.every(([bx, bz, br]) => Math.hypot(x - bx, z - bz) > br);
+
+  const fr = seeded(7);
+  const spots: { x: number; z: number; color: number; delay: number }[] = [];
+  // 群れを 4 つ。群れごとに色の種類がだいたい決まっていて、たまに別の色が混ざる
+  for (let c = 0, tries = 0; c < 4 && tries < 200; tries++) {
+    const a = fr() * Math.PI * 2;
+    const rad = 0.6 + fr() * 1.6;
+    const cx = Math.cos(a) * rad;
+    const cz = Math.sin(a) * rad;
+    if (!free(cx, cz)) continue;
+    const color = Math.floor(fr() * FLOWER_COLORS.length);
+    const start = fr() * 5; // 群れごとに咲き始めがずれる
+    const n = 2 + Math.floor(fr() * 4);
+    for (let k = 0, t2 = 0; k < n && t2 < 40; t2++) {
+      const x = cx + (fr() - 0.5) * 0.7;
+      const z = cz + (fr() - 0.5) * 0.7;
+      if (!free(x, z) || spots.some((s2) => Math.hypot(s2.x - x, s2.z - z) < 0.18)) continue;
+      spots.push({ x, z, color: fr() < 0.8 ? color : Math.floor(fr() * FLOWER_COLORS.length), delay: start + fr() * 2.5 });
+      k++;
+    }
+    c++;
+  }
+
+  const flowers = spots.map(({ x, z, color, delay }) => {
+    const height = 0.22 + fr() * 0.3;
+    const petals = fr() < 0.7 ? 5 : 6;
     const g = new Group();
     g.position.set(x, 0.22, z);
-    g.rotation.y = i * 1.3;
+    g.rotation.set((fr() - 0.5) * 0.35, fr() * Math.PI * 2, (fr() - 0.5) * 0.35); // 少しずつ傾いて生える
     island.add(g);
     const stem = new Mesh(stemGeo, m.leaves[2]);
+    stem.scale.y = height;
     g.add(stem);
+    // 葉：茎の途中に 1〜2 枚、根元に 2〜3 枚
+    const leafAt = (y: number, tilt: number, size: number) => {
+      const pivot = new Group();
+      pivot.rotation.order = "YXZ";
+      pivot.position.y = y;
+      pivot.rotation.y = fr() * Math.PI * 2;
+      pivot.rotation.x = tilt;
+      const leaf = new Mesh(leafGeo, m.leaves[fr() < 0.5 ? 1 : 2]);
+      leaf.scale.setScalar(size);
+      pivot.add(leaf);
+      g.add(pivot);
+    };
+    const stemLeaves = 1 + Math.floor(fr() * 2);
+    for (let k = 0; k < stemLeaves; k++) leafAt(height * (0.25 + fr() * 0.35), -0.7 - fr() * 0.4, 0.7 + fr() * 0.4);
+    const baseLeaves = 2 + Math.floor(fr() * 2);
+    for (let k = 0; k < baseLeaves; k++) leafAt(0.01, -0.15 - fr() * 0.25, 0.9 + fr() * 0.5);
+
     const head = new Group(); // 茎の先（花がつく場所）
-    head.position.y = 0.4;
+    head.position.y = height;
+    head.rotation.x = (fr() - 0.5) * 0.5; // 花も少し横を向く
     g.add(head);
-    const pivots = Array.from({ length: PETALS }, (_, k) => {
+    const offset = fr() * Math.PI;
+    const pivots = Array.from({ length: petals }, (_, k) => {
       const pivot = new Group();
       pivot.rotation.order = "YXZ"; // 先に向き（Y）を決めてから、開き具合（X）を傾ける
-      pivot.rotation.y = (k / PETALS) * Math.PI * 2;
-      pivot.add(new Mesh(petalGeo, petalMats[i % petalMats.length]));
+      pivot.rotation.y = offset + (k / petals) * Math.PI * 2;
+      pivot.add(new Mesh(petalGeo, petalMats[color]));
       head.add(pivot);
       return pivot;
     });
     const center = new Mesh(centerGeo, centerMat);
     head.add(center);
-    return { g, stem, head, pivots, center, delay: i * 0.6 };
+    return {
+      g, head, pivots, center, delay,
+      bloomSize: 0.75 + fr() * 0.45, // 花の大きさ
+      cycle: 15 + fr() * 10, // 咲いて閉じるまでの周期（秒）
+      sway: fr() * 10,
+    };
   });
 
   // 0〜1 の範囲で、なめらかに増える値（動きの始まりと終わりをゆっくりにする）
@@ -272,12 +331,11 @@ export function createIslandScene(
     const c = Math.min(1, Math.max(0, v));
     return c * c * (3 - 2 * c);
   };
-  const CYCLE = 18; // 1 回の「芽 → 開花 → 閉じる」にかける秒数
 
   // ある花の、ある時刻での「茎の伸び（grow）」と「花の開き（open）」を計算する
-  function flowerState(time: number) {
+  function flowerState(time: number, cycle: number) {
     if (time < 0) return { grow: 0, open: 0 };
-    const p = (time % CYCLE) / CYCLE;
+    const p = (time % cycle) / cycle;
     if (p < 0.12) return { grow: ease(p / 0.12), open: 0 }; // 芽が出て茎が伸びる
     if (p < 0.24) return { grow: 1, open: ease((p - 0.12) / 0.12) }; // 花びらが開く
     if (p < 0.86) return { grow: 1, open: 1 }; // 咲いている
@@ -290,17 +348,17 @@ export function createIslandScene(
   let day = isDay ? 1 : 0; // 昼らしさ 0〜1（テーマが変わったら少しずつ変える）
 
   function updateFlowers() {
-    flowers.forEach((f, i) => {
+    flowers.forEach((f) => {
       // 「動きを減らす」設定では、最初から満開で止めておく
-      const { grow, open } = reducedMotion ? { grow: 1, open: 1 } : flowerState(bloomClock - f.delay);
+      const { grow, open } = reducedMotion ? { grow: 1, open: 1 } : flowerState(bloomClock - f.delay, f.cycle);
       const size = grow * day;
       f.g.visible = size > 0.001;
       f.g.scale.setScalar(Math.max(0.001, size));
-      f.head.scale.setScalar(0.4 + 0.6 * open);
+      f.head.scale.setScalar((0.4 + 0.6 * open) * f.bloomSize);
       const angle = CLOSED + (OPEN - CLOSED) * open;
       f.pivots.forEach((pv) => (pv.rotation.x = angle));
       f.center.scale.setScalar(open);
-      if (!reducedMotion) f.g.rotation.z = Math.sin(bloomClock * 1.4 + i) * 0.06; // 風でゆれる
+      if (!reducedMotion) f.head.rotation.z = Math.sin(bloomClock * 1.3 + f.sway) * 0.08; // 風でゆれる
     });
   }
 

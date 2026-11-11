@@ -28,6 +28,14 @@
   --flower-2: #f6b4c6;
   --flower-3: #ffd45e;
   --flower-center: #e3a13a;
+  /* ジャングルの奥行き（Jungle.tsx）：遠くの幹・少し手前の幹・手前の葉のシルエット・たれ下がるツル・霧・奥の光・四隅の暗さ */
+  --trunk-far: #b7cbb6;
+  --trunk-mid: #86a28b;
+  --silhouette: #1d3326;
+  --liana: #4f7458;
+  --mist: rgba(255, 255, 240, 0.65);
+  --glow: rgba(255, 250, 210, 0.95);
+  --vignette: rgba(28, 58, 38, 0.3);
 }
 
 /* ダークモードは「夜の森」。手前の葉はシルエットになり、葉脈が回路のように光り、蛍が飛びます。
@@ -53,6 +61,13 @@
   --flower-2: #9c6f80;
   --flower-3: #b89a45;
   --flower-center: #6f5a28;
+  --trunk-far: #0f2118;
+  --trunk-mid: #0a1810;
+  --silhouette: #020604;
+  --liana: #163021;
+  --mist: rgba(140, 210, 165, 0.05);
+  --glow: rgba(124, 196, 143, 0.13);
+  --vignette: rgba(0, 0, 0, 0.6);
 }
 
 /* Tailwind の「dark:〜」クラスも、OS の設定ではなく data-theme に合わせて効くようにする */
@@ -210,6 +225,89 @@ body {
   }
 }
 
+/* ===== ジャングル（Jungle.tsx） ===== */
+
+/* 遠くの幹は霧にかすんでぼやけ、少し手前の幹はやや濃くはっきり */
+.trunk-far {
+  fill: var(--trunk-far);
+  filter: blur(2.5px);
+  opacity: 0.85;
+}
+.trunk-mid {
+  fill: var(--trunk-mid);
+  filter: blur(0.8px);
+  opacity: 0.55;
+}
+
+/* たれ下がるツル：上の付け根を支点に、ゆっくりふりこのようにゆれる。depth が小さいほど奥（薄い） */
+.liana {
+  fill: var(--liana);
+  stroke: var(--liana);
+  animation: liana-sway 9s ease-in-out infinite alternate;
+}
+.liana > ellipse,
+.liana > path + path {
+  stroke: none;
+}
+.liana.depth-1 {
+  opacity: 0.35;
+}
+.liana.depth-2 {
+  opacity: 0.6;
+}
+@keyframes liana-sway {
+  from {
+    rotate: -1.2deg;
+  }
+  to {
+    rotate: 1.2deg;
+  }
+}
+
+/* 手前の大きな葉：光を背にした黒いシルエット */
+.silhouette {
+  fill: var(--silhouette);
+}
+.silhouette-stroke {
+  fill: none;
+  stroke: var(--silhouette);
+}
+
+/* 奥からさす光：中央の少し上がぼんやり明るい */
+.jungle-glow {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: 90vmax;
+  height: 90vmax;
+  translate: -50% -50%;
+  background: radial-gradient(circle, var(--glow), transparent 55%);
+}
+
+/* 霧：ぼかした楕円が、ゆっくり横にただよう */
+.mist {
+  position: absolute;
+  height: 30%;
+  background: radial-gradient(ellipse at center, var(--mist), transparent 70%);
+  filter: blur(18px);
+  animation: mist-drift 40s ease-in-out infinite alternate;
+}
+@keyframes mist-drift {
+  to {
+    translate: 18% 0;
+  }
+}
+
+/* 四隅を少し暗くして、森の奥をのぞきこんでいるような感じに */
+.jungle-vignette {
+  background: radial-gradient(ellipse at 50% 42%, transparent 45%, var(--vignette) 100%);
+}
+
+/* ページ全体の背景の幹は、文字の読みやすさのため左右のはしだけに見せる */
+.backdrop-trunks {
+  mask-image: linear-gradient(to right, black, transparent 22%, transparent 78%, black);
+}
+
 /* ===== テーマ切り替え ===== */
 
 /* ボタンでライト/ダークを切り替えた瞬間だけ、色を 0.5 秒かけてなめらかに変える */
@@ -244,17 +342,19 @@ body {
   stroke-width: 1.2;
   stroke-linecap: round;
   stroke-dasharray: 1;
-  stroke-dashoffset: clamp(0, calc(1 - (var(--sp, 0) - var(--at, 0)) * 25), 1);
+  stroke-dashoffset: clamp(0, calc(1 - (var(--sp, 0) - var(--at, 0)) * 18), 1);
 }
-/* 葉っぱ：茎の先が届くと、根元からふくらむように開く */
+/* 葉っぱ：茎の先が届くと、根元からふくらむように開く。色は 3 段階（shade-0〜2）でばらつかせる */
 .vine-leaf {
   fill: var(--leaf-3);
-  transform-box: fill-box; /* 拡大・縮小の基準を「この葉っぱ自身の四角」にする */
-  transform-origin: left bottom; /* 上向きの葉は左下が根元 */
+  transform-origin: 0 0; /* 葉の根元（ScrollVine.tsx で (0,0) にそろえてある）を中心に拡大する */
   scale: clamp(0, calc((var(--sp, 0) - var(--at, 0)) * 40), 1);
 }
-.vine-leaf.is-down {
-  transform-origin: left top; /* 下向きの葉は左上が根元 */
+.vine-leaf.shade-0 {
+  fill: var(--accent);
+}
+.vine-leaf.shade-2 {
+  fill: var(--leaf-2);
 }
 
 /* ヒーロー：下にスクロールすると、文字がゆっくり沈みながら薄くなる（奥へ遠ざかる感じ） */
@@ -331,6 +431,10 @@ body {
   .ray,
   .firefly {
     display: none;
+  }
+  .liana,
+  .mist {
+    animation: none;
   }
   .parallax,
   .hero-fade {

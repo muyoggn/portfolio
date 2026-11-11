@@ -82,7 +82,8 @@ const ground: PlantData[] = [
 
 function Cluster({ data, viewBox, className, preserve }: { data: PlantData[]; viewBox: string; className: string; preserve?: string }) {
   return (
-    <svg viewBox={viewBox} preserveAspectRatio={preserve} className={className} aria-hidden="true">
+        // overflow-visible：SVG の枠からはみ出した葉も切らずに表示する（上からたれ下がる葉が途中で切れないように）
+    <svg viewBox={viewBox} preserveAspectRatio={preserve} className={`overflow-visible ${className}`} aria-hidden="true">
       {data.map((p, i) => (
         <Plant key={i} data={p} index={i} />
       ))}
