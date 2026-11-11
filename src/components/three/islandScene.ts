@@ -100,7 +100,11 @@ function roughen<T extends BufferGeometry>(geo: T, amount: number, seed: number)
   const pos = geo.getAttribute("position") as BufferAttribute;
   const moved = new Map<string, [number, number, number]>();
   for (let i = 0; i < pos.count; i++) {
-    const key = `${pos.getX(i).toFixed(3)},${pos.getY(i).toFixed(3)},${pos.getZ(i).toFixed(3)}`;
+    // 同じ場所にある頂点は同じだけ動かす（別々に動かすと面と面の間にすき間ができる）。
+    // 円の継ぎ目では sin(2π) が「-0.000…」になり、"0.000" と別の場所あつかいされてすき間ができていたので、
+    // 小数 3 桁に丸めてから +0 して、-0 を 0 にそろえる
+    const r3 = (v: number) => Math.round(v * 1000) / 1000 + 0;
+    const key = `${r3(pos.getX(i))},${r3(pos.getY(i))},${r3(pos.getZ(i))}`;
     let d = moved.get(key);
     if (!d) {
       d = [(rand() - 0.5) * amount, (rand() - 0.5) * amount, (rand() - 0.5) * amount];
@@ -161,7 +165,8 @@ export function createIslandScene(
 
   // 地面（草の生えた上面）と、その下の土のかたまり（逆さの円すい）
   add(roughen(new CylinderGeometry(2.5, 2.3, 0.45, 11, 1), 0.12, 1), m.grass, 0, 0, 0);
-  const soil = add(roughen(new ConeGeometry(2.3, 2.8, 11, 3), 0.28, 2), m.soil, 0, -1.62, 0);
+  // 土台の上の面は草地の中に少しもぐらせ、草地との間にすき間が見えないようにする
+  const soil = add(roughen(new ConeGeometry(2.3, 2.8, 11, 3), 0.28, 2), m.soil, 0, -1.47, 0);
   soil.rotation.x = Math.PI;
 
   // 大きな木：幹＋葉のかたまり 3 つ（葉のかたまりは、風でゆれるように別のグループに）
