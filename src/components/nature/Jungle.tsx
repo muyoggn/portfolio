@@ -3,70 +3,110 @@ import { seeded } from "@/lib/random";
 // =============================================================
 // 「神秘的なジャングル」の奥行きをつくる部品です。すべて SVG と CSS で描いています。
 //
-// 本物のジャングルの絵を観察すると、奥行きは次の 4 つの重なりでできています。
-//   1. 遠くの木の幹  … 霧にかすんで、淡く・ぼやけて見える（JungleTrunks）
-//   2. 霧と光        … 奥から光がさし、手前にもやがただよう（JungleMist）
-//   3. たれ下がるツル … 上の枝から長いツル（つる植物）が何本もぶら下がる（Lianas）
-//   4. 手前の大きな葉 … 光を背にして、黒いシルエットになる（JungleSilhouettes）
+// 参考にしたのは「フラットデザインのジャングルの絵」の描き方です（絵そのものは使っていません）。
+//   ・色は緑の濃さだけで描き分ける（黒は使わない）。奥ほど淡く、手前ほど濃い緑
+//   ・木の幹は細長く、ゆるく弓なりに曲がり、根元は霧に溶けて見えなくなる
+//   ・上からはヤシの葉がカーテンのようにたれ下がり、下の角からはシダと草むらが生える
+//
+// 重ねる順番（奥 → 手前）
+//   1. 木の幹 3 層（遠く・中くらい・手前）… JungleTrunks
+//   2. 霧と光                                … JungleMist
+//   3. たれ下がるツル                        … Lianas
+//   4. 手前の葉（ヤシ・シダ・草むら）        … JungleSilhouettes
 //
 // 形は「シード付き乱数」で 1 本ずつばらばらに作っています（毎回同じ形になるので表示がずれない）。
-// 色は globals.css の --trunk-far / --silhouette / --mist などで、昼と夜で切り替わります。
+// 色は globals.css の --trunk-* / --canopy-* / --bush-* などで、昼と夜で切り替わります。
 // =============================================================
 
 const W = 1440;
 const H = 900;
 
-// ---- 1. 遠くの木の幹 ----
-// 下から上へ、少しうねりながら細くなる幹。上のほうで枝分かれさせる
-function trunkPath(r: ReturnType<typeof seeded>, x: number, width: number) {
-  const sway = r.range(-40, 40);
+type Rand = ReturnType<typeof seeded>;
+type Pt = [number, number];
+
+// 2 次ベジェ曲線（始点 p0・制御点 p1・終点 p2）の t の場所と、そこでの向き
+function bez(p0: Pt, p1: Pt, p2: Pt, t: number): Pt {
+  const u = 1 - t;
+  return [u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0], u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]];
+}
+function bezDir(p0: Pt, p1: Pt, p2: Pt, t: number): Pt {
+  const dx = 2 * (1 - t) * (p1[0] - p0[0]) + 2 * t * (p2[0] - p1[0]);
+  const dy = 2 * (1 - t) * (p1[1] - p0[1]) + 2 * t * (p2[1] - p1[1]);
+  const len = Math.hypot(dx, dy) || 1;
+  return [dx / len, dy / len];
+}
+const f1 = (n: number) => n.toFixed(1);
+
+// ---- 1. 木の幹 ----
+// 画面の下から上へ、ゆるく弓なりに曲がりながら伸びる細長い幹。
+// 根元は少し太く広がり、上へいくほど細くなる。lean で上のほうがどれだけ横へかたむくかを決める
+function trunkPath(r: Rand, x: number, width: number, lean: number) {
+  const p0: Pt = [x, H + 30];
+  const p2: Pt = [x + lean, -80];
+  const p1: Pt = [x + lean * 0.3 + r.range(-70, 70), H * 0.45];
   const left: string[] = [];
   const right: string[] = [];
-  const steps = 8;
+  const steps = 18;
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
-    const y = H + 20 - (H + 40) * t;
-    const cx = x + Math.sin(t * Math.PI) * sway;
-    const w = width * (1 - t * 0.45); // 上ほど細く
-    left.push(`${(cx - w / 2).toFixed(1)} ${y.toFixed(1)}`);
-    right.unshift(`${(cx + w / 2).toFixed(1)} ${y.toFixed(1)}`);
+    const [cx, cy] = bez(p0, p1, p2, t);
+    const [dx, dy] = bezDir(p0, p1, p2, t);
+    const w = (width * (1 - 0.35 * t) * (1 + 0.5 * Math.pow(1 - t, 8))) / 2; // 上ほど細く、根元だけ少し広がる
+    left.push(`${f1(cx - dy * w)} ${f1(cy + dx * w)}`);
+    right.unshift(`${f1(cx + dy * w)} ${f1(cy - dx * w)}`);
   }
-  let d = `M${left.join(" L")} L${right.join(" L")} Z`;
-  // 枝：幹の上半分から、斜め上へ 1〜3 本
-  const branches = r.int(1, 3);
-  for (let b = 0; b < branches; b++) {
-    const t = r.range(0.5, 0.85);
-    const by = H + 20 - (H + 40) * t;
-    const bx = x + Math.sin(t * Math.PI) * sway;
-    const dir = r.chance(0.5) ? 1 : -1;
-    const len = r.range(80, 200);
-    const bw = width * 0.22;
-    d += ` M${bx} ${by} Q${bx + dir * len * 0.5} ${by - len * 0.15} ${bx + dir * len} ${by - len * 0.6} L${bx + dir * len - dir * bw * 0.5} ${by - len * 0.6 + bw} Q${bx + dir * len * 0.45} ${by - len * 0.05} ${bx} ${by + bw * 2} Z`;
-  }
-  return d;
+  return `M${left.join(" L")} L${right.join(" L")} Z`;
 }
 
-export function JungleTrunks({ seed = 7, className = "" }: { seed?: number; className?: string }) {
+// 幹の色を、上は濃く・根元は霧に溶けて薄くするグラデーション
+function TrunkFade({ id, color }: { id: string; color: string }) {
+  return (
+    <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" style={{ stopColor: color, stopOpacity: 1 }} />
+      <stop offset="0.55" style={{ stopColor: color, stopOpacity: 0.85 }} />
+      <stop offset="1" style={{ stopColor: color, stopOpacity: 0.05 }} />
+    </linearGradient>
+  );
+}
+
+export function JungleTrunks({ seed = 7, className = "", near = true }: { seed?: number; className?: string; near?: boolean }) {
   const r = seeded(seed);
-  // 奥（far：たくさん・細い・ぼやける）と、少し手前（mid：少ない・太い）の 2 層
-  const far = Array.from({ length: 13 }, (_, i) => {
-    const x = (i + r.range(0.1, 0.9)) * (W / 13);
-    return trunkPath(r, x, r.range(8, 22));
+  // 遠く：たくさん・細い・淡い
+  const far = Array.from({ length: 18 }, (_, i) => trunkPath(r, (i + r.range(0.1, 0.9)) * (W / 18), r.range(10, 24), r.range(-110, 110)));
+  // 中くらい：少し太く、文字のある真ん中は少なめ
+  const mid = Array.from({ length: 9 }, (_, i) => {
+    const x = i < 7 ? (i % 2 === 0 ? r.range(0, 0.32) : r.range(0.68, 1)) * W : r.range(0.38, 0.62) * W;
+    return trunkPath(r, x, r.range(24, 42), r.range(-140, 140));
   });
-  const mid = Array.from({ length: 5 }, (_, i) => {
-    // 真ん中（文字のある場所）を避けて、左右に寄せる
-    const sideX = i % 2 === 0 ? r.range(20, 360) : r.range(1080, 1420);
-    return trunkPath(r, sideX, r.range(22, 40));
-  });
+  // 手前：左右のはしに太い幹。画面の内側へ向かってかたむく
+  const front = near
+    ? [
+        trunkPath(r, r.range(-60, 60), r.range(54, 76), r.range(120, 260)),
+        trunkPath(r, r.range(140, 260), r.range(40, 56), r.range(-60, 40)),
+        trunkPath(r, W - r.range(-60, 60), r.range(54, 76), -r.range(120, 260)),
+        trunkPath(r, W - r.range(140, 260), r.range(40, 56), -r.range(-60, 40)),
+      ]
+    : [];
+  const id = (layer: string) => `trunk-fade-${seed}-${layer}`;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMax slice" className={`h-full w-full ${className}`} aria-hidden="true">
-      <g className="trunk-far">
+      <defs>
+        <TrunkFade id={id("far")} color="var(--trunk-far)" />
+        <TrunkFade id={id("mid")} color="var(--trunk-mid)" />
+        <TrunkFade id={id("near")} color="var(--trunk-near)" />
+      </defs>
+      <g className="trunk-far" fill={`url(#${id("far")})`}>
         {far.map((d, i) => (
           <path key={i} d={d} />
         ))}
       </g>
-      <g className="trunk-mid">
+      <g className="trunk-mid" fill={`url(#${id("mid")})`}>
         {mid.map((d, i) => (
+          <path key={i} d={d} />
+        ))}
+      </g>
+      <g fill={`url(#${id("near")})`}>
+        {front.map((d, i) => (
           <path key={i} d={d} />
         ))}
       </g>
@@ -135,128 +175,155 @@ export function Lianas({ seed = 21, count = 9 }: { seed?: number; count?: number
   );
 }
 
-// ---- 4. 手前の大きな葉のシルエット ----
-// バナナの葉：細長い葉が、ところどころ風で裂けている。
-// 葉は「1 本のつながった輪郭」として描く（部品に分けると、つなぎ目に細い線が見えてしまうため）。
-// 輪郭を根元 → 先 → 根元となぞる途中で、ところどころ「ふちから主脈のほうへ斜めに入る細い切れ込み」を入れる。
-// 本物のバナナの葉は、葉脈にそって斜めに裂けるので、切れ込みも先のほうへ傾けている。
-// bend で葉全体を弓なりにしならせる。
-function bananaLeaf(r: ReturnType<typeof seeded>) {
-  const L = 100;
-  const bend = r.range(-14, 14);
-  const width = r.range(15, 19);
-  // 葉の半分の幅：根元は細く、まん中が広く、先に向かってなめらかにとがる
-  const half = (t: number) => width * Math.pow(Math.sin(Math.PI * Math.min(Math.max(t, 0), 1)), 0.75) * (1 - 0.3 * t);
-  // t（0 = 根元、1 = 先）の場所の、主脈からの横のずれ（しなり）
-  const midX = (t: number) => bend * t * t;
-  const P = (t: number, side: number, k = 1) => `${(midX(t) + side * half(t) * k).toFixed(1)} ${(-t * L).toFixed(1)}`;
+// ---- 4. 手前の葉（ヤシ・シダ・草むら） ----
 
-  // 片側のふちを、根元から先までなぞる点の列（切れ込みつき）
-  const edge = (side: number) => {
-    // 切れ込みの場所：葉のまん中あたりに 2〜4 本、間隔はばらばら
-    const tears: number[] = [];
-    for (let t = r.range(0.18, 0.3); t < 0.8; t += r.range(0.1, 0.22)) tears.push(t);
-    const pts: string[] = [];
-    let t = 0.02;
-    for (const tear of tears) {
-      for (; t < tear; t += 0.02) pts.push(P(t, side));
-      const depth = r.range(0.15, 0.45); // どこまで主脈に近づくか（0 = 主脈）
-      const slant = r.range(0.05, 0.09); // 奥ほど根元側へ（斜めに裂ける）
-      const open = r.range(0.006, 0.012); // ふちでの開き（ほんの少し）
-      pts.push(P(tear, side), P(tear - slant, side, depth), P(tear + open, side));
-      t = tear + open + 0.02;
+// 羽のような葉（ヤシやシダ）を 1 枚作る。
+// 軸（まん中の茎）を 2 次ベジェ曲線で引き、その左右に細長い小葉をたくさん並べる。
+// 小葉の向きは「軸の先のほう（along）」「外側（out）」「重力で下（fall）」の 3 つを混ぜて決める。
+//   ・たれ下がるヤシ：fall を大きく → 小葉がカーテンのように下へたれる
+//   ・下から生えるシダ：along と out を大きく → 小葉が先のほうへ斜めに開く
+function frond(r: Rand, o: { end: Pt; ctrl: Pt; n: number; leaflet: number; along: number; out: number; fall: number; width: number }) {
+  const p0: Pt = [0, 0];
+  const parts: string[] = [];
+  for (let i = 0; i < o.n; i++) {
+    const t = 0.05 + (i / o.n) * 0.93;
+    const [bx, by] = bez(p0, o.ctrl, o.end, t);
+    const [tx, ty] = bezDir(p0, o.ctrl, o.end, t);
+    // 小葉の長さ：根元と先は短く、まん中が長い。1 枚ずつ少しばらつかせる
+    const shape = Math.pow(Math.sin(Math.PI * Math.min(0.98, t * 0.9 + 0.08)), 0.7);
+    for (const side of [-1, 1]) {
+      const len = o.leaflet * shape * r.range(0.8, 1.15);
+      if (len < 4 || r.chance(0.05)) continue; // ところどころ小葉が抜けている
+      let dx = tx * o.along + -ty * side * o.out;
+      let dy = ty * o.along + tx * side * o.out + o.fall;
+      const dl = Math.hypot(dx, dy) || 1;
+      dx /= dl;
+      dy /= dl;
+      const ex = bx + dx * len;
+      const ey = by + dy * len;
+      // 小葉はまっすぐではなく、少し下へしなる
+      const sag = len * 0.12;
+      const mx = bx + dx * len * 0.5;
+      const my = by + dy * len * 0.5 + sag;
+      const w = Math.max(1.6, len * o.width);
+      parts.push(
+        `M${f1(bx)} ${f1(by)} Q${f1(mx - dy * w)} ${f1(my + dx * w)} ${f1(ex)} ${f1(ey)} Q${f1(mx + dy * w)} ${f1(my - dx * w)} ${f1(bx)} ${f1(by)}Z`,
+      );
     }
-    for (; t < 0.995; t += 0.02) pts.push(P(t, side));
-    return pts;
-  };
-  const right = edge(1);
-  const left = edge(-1).reverse();
-  const blade = `M${P(0, 0, 0)} L${right.join(" L")} L${P(1, 0, 0)} L${left.join(" L")} Z`;
-  return { blade, rib: `M0 12 Q${(bend * 0.25).toFixed(1)} -50 ${midX(1).toFixed(1)} -100` };
-}
-
-type Silhouette = { x: number; y: number; angle: number; size: number; kind: "banana" | "palm"; d: string; rib: string };
-
-function silhouettes(seed: number): Silhouette[] {
-  const r = seeded(seed);
-  const items: Silhouette[] = [];
-  const banana = (x: number, y: number, angle: number, size: number) => {
-    const leaf = bananaLeaf(r);
-    items.push({ x, y, angle, size, kind: "banana", d: leaf.blade, rib: leaf.rib });
-  };
-  // 下の角から上へ向かって伸びる葉（根元は画面の外）
-  for (let i = 0; i < 3; i++) banana(r.range(-30, 120), H - r.range(40, 160), r.range(20, 65), r.range(230, 330));
-  // 上の角から垂れ下がる葉
-  for (let i = 0; i < 2; i++) banana(r.range(-30, 120), r.range(-40, 10), r.range(115, 160), r.range(200, 290));
-  // ヤシのような細い葉
-  items.push({ x: r.range(-20, 40), y: H * r.range(0.45, 0.6), angle: r.range(55, 80), size: r.range(240, 300), kind: "palm", d: "", rib: "" });
-  return items;
-}
-
-function PalmFrond({ size }: { size: number }) {
-  // 茎（しなる曲線）に沿って、細長い小葉を左右に並べる。小葉は先のほうへ向かって斜めに生え、少したれる
-  const stemX = (t: number) => 10 * t * t;
-  const blades: string[] = [];
-  for (let i = 0; i < 22; i++) {
-    const t = 0.08 + (i / 22) * 0.9;
-    const side = i % 2 === 0 ? 1 : -1;
-    const len = 38 * Math.sin(Math.PI * Math.min(0.97, t + 0.05)) + 6;
-    const bx = stemX(t);
-    const by = -t * 100;
-    // 小葉の先：外へ len、先のほうへ len*0.5、重さで少したれる
-    const tx = bx + side * len;
-    const ty = by - len * 0.45 + len * 0.25;
-    const w = 2.6;
-    blades.push(
-      `M${bx.toFixed(1)} ${by.toFixed(1)} Q${(bx + side * len * 0.5).toFixed(1)} ${(by - len * 0.45 - w).toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)} Q${(bx + side * len * 0.5).toFixed(1)} ${(by - len * 0.35 + w).toFixed(1)} ${bx.toFixed(1)} ${(by + 1.5).toFixed(1)}Z`,
-    );
   }
-  return (
-    <g transform={`scale(${size / 100})`}>
-      <path d="M0 10 Q2 -50 10 -100" fill="none" strokeWidth={1.4} className="silhouette-stroke" />
-      <path d={blades.join(" ")} />
-    </g>
-  );
+  // 軸：根元が太く先が細い線を、細長い三角形で描く
+  const rib: string[] = [];
+  const back: string[] = [];
+  for (let k = 0; k <= 10; k++) {
+    const t = k / 10;
+    const [x, y] = bez(p0, o.ctrl, o.end, t);
+    const [tx, ty] = bezDir(p0, o.ctrl, o.end, t);
+    const w = 2.4 * (1 - t) + 0.4;
+    rib.push(`${f1(x - ty * w)} ${f1(y + tx * w)}`);
+    back.unshift(`${f1(x + ty * w)} ${f1(y - tx * w)}`);
+  }
+  parts.push(`M${rib.join(" L")} L${back.join(" L")} Z`);
+  return parts.join(" ");
 }
 
-// 左右どちらか片側の葉のシルエット（flip で左右反転）
-function SilhouetteSide({ items, flip }: { items: Silhouette[]; flip?: boolean }) {
-  return (
-    <svg
-      viewBox={`0 0 500 ${H}`}
-      preserveAspectRatio="xMinYMid meet"
-      className={`silhouette h-full w-auto overflow-visible ${flip ? "-scale-x-100" : ""}`}
-      aria-hidden="true"
-    >
-      {items.map((s, i) => (
-        <g key={i} transform={`translate(${s.x.toFixed(0)} ${s.y.toFixed(0)}) rotate(${s.angle.toFixed(0)})`}>
+// 上からたれ下がるヤシの葉（根元は画面の上の外）
+function hangingPalm(r: Rand) {
+  const len = r.range(320, 440);
+  return frond(r, {
+    ctrl: [len * r.range(0.45, 0.6), -len * r.range(0.05, 0.15)],
+    end: [len * r.range(0.8, 0.95), len * r.range(0.45, 0.65)],
+    n: 26,
+    leaflet: len * r.range(0.38, 0.48),
+    along: 0.3,
+    out: 0.3,
+    fall: 1.2,
+    width: 0.045,
+  });
+}
+
+// 下の角から生えるシダ
+function fern(r: Rand) {
+  const len = r.range(240, 360);
+  return frond(r, {
+    ctrl: [len * r.range(0.05, 0.25), -len * 0.6],
+    end: [len * r.range(0.45, 0.7), -len * r.range(0.6, 0.85)],
+    n: 26,
+    leaflet: len * r.range(0.22, 0.3),
+    along: 0.7,
+    out: 1,
+    fall: 0.25,
+    width: 0.09,
+  });
+}
+
+// 草むら：なだらかな山の上のふちを、細い草の葉のギザギザにする
+function bush(r: Rand, x0: number, x1: number, height: number) {
+  const pts: string[] = [`${f1(x0)} ${H + 10}`];
+  for (let x = x0; x <= x1; x += r.range(8, 16)) {
+    const u = (x - x0) / (x1 - x0);
+    const top = H - height * Math.pow(Math.sin(Math.PI * u), 0.6) - r.range(0, height * 0.12);
+    const blade = r.range(10, 30);
+    const lean = r.range(-8, 10);
+    pts.push(`${f1(x)} ${f1(top + 6)}`, `${f1(x + 3 + lean)} ${f1(top - blade)}`, `${f1(x + 6)} ${f1(top + 4)}`);
+  }
+  pts.push(`${f1(x1)} ${H + 10}`);
+  return `M${pts.join(" L")} Z`;
+}
+
+type Piece = { d: string; x: number; y: number; angle: number; layer: "far" | "near"; sway: boolean };
+
+// 片側（左）の葉をまとめて作る。右側は同じ作り方で別の形にし、左右反転して置く
+function foreground(seed: number): { pieces: Piece[]; bushes: { far: string; near: string } } {
+  const r = seeded(seed);
+  const pieces: Piece[] = [];
+  // 上の角からたれ下がるヤシ（奥に淡い 2 枚、手前に濃い 2 枚）
+  for (let i = 0; i < 4; i++) {
+    pieces.push({ d: hangingPalm(r), x: r.range(-120, 120), y: r.range(-60, -10), angle: r.range(-12, 18), layer: i < 2 ? "far" : "near", sway: true });
+  }
+  // 下の角から生えるシダ（奥に 1 枚、手前に 2 枚）
+  for (let i = 0; i < 3; i++) {
+    pieces.push({ d: fern(r), x: r.range(-20, 140), y: H + r.range(0, 30), angle: r.range(-25, 25), layer: i === 0 ? "far" : "near", sway: true });
+  }
+  return { pieces, bushes: { far: bush(r, -40, r.range(380, 480), r.range(110, 150)), near: bush(r, -40, r.range(240, 320), r.range(60, 90)) } };
+}
+
+// 左右どちらか片側の葉（flip で左右反転）
+function SilhouetteSide({ seed, flip }: { seed: number; flip?: boolean }) {
+  const { pieces, bushes } = foreground(seed);
+  const draw = (layer: Piece["layer"]) =>
+    pieces
+      .filter((p) => p.layer === layer)
+      .map((p, i) => (
+        <g key={`${layer}-${i}`} transform={`translate(${f1(p.x)} ${f1(p.y)}) rotate(${p.angle.toFixed(0)})`}>
           {/* ゆっくり風にゆれる（.sway は根元を支点に回転する CSS アニメーション） */}
-          <g className="sway" style={{ animationDuration: `${7 + (i % 4) * 1.5}s`, animationDelay: `${-i * 1.3}s` }}>
-            {s.kind === "palm" ? (
-              <PalmFrond size={s.size} />
-            ) : (
-              <g transform={`scale(${(s.size / 100).toFixed(2)})`}>
-                <path d={s.rib} fill="none" strokeWidth={1.6} className="silhouette-stroke" />
-                <path d={s.d} />
-              </g>
-            )}
+          <g className="sway" style={{ animationDuration: `${8 + (i % 3) * 1.7}s`, animationDelay: `${-i * 1.9}s` }}>
+            <path d={p.d} />
           </g>
         </g>
-      ))}
+      ));
+  return (
+    <svg
+      viewBox={`0 0 600 ${H}`}
+      preserveAspectRatio="xMinYMid meet"
+      className={`h-full w-auto overflow-visible ${flip ? "-scale-x-100" : ""}`}
+      aria-hidden="true"
+    >
+      <path className="bush-far" d={bushes.far} />
+      <g className="canopy-far">{draw("far")}</g>
+      <path className="bush-near" d={bushes.near} />
+      <g className="canopy-near">{draw("near")}</g>
     </svg>
   );
 }
 
 export function JungleSilhouettes({ seed = 3 }: { seed?: number }) {
-  const left = silhouettes(seed);
-  const right = silhouettes(seed + 100);
   return (
     <div className="silhouette-fade pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      <div className="absolute inset-y-0 left-0 -translate-x-[55%] sm:-translate-x-[15%]">
-        <SilhouetteSide items={left} />
+      <div className="absolute inset-y-0 left-0 -translate-x-[62%] sm:-translate-x-[12%]">
+        <SilhouetteSide seed={seed} />
       </div>
-      <div className="absolute inset-y-0 right-0 translate-x-[55%] sm:translate-x-[15%]">
-        <SilhouetteSide items={right} flip />
+      <div className="absolute inset-y-0 right-0 translate-x-[62%] sm:translate-x-[12%]">
+        <SilhouetteSide seed={seed + 100} flip />
       </div>
     </div>
   );
@@ -266,7 +333,7 @@ export function JungleSilhouettes({ seed = 3 }: { seed?: number }) {
 export function JungleBackdrop() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-20" aria-hidden="true">
-      <JungleTrunks seed={42} className="backdrop-trunks hidden opacity-60 sm:block" />
+      <JungleTrunks seed={42} near={false} className="backdrop-trunks hidden opacity-60 sm:block" />
       <div className="jungle-vignette absolute inset-0" />
     </div>
   );
