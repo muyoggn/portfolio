@@ -137,38 +137,42 @@ export function Lianas({ seed = 21, count = 9 }: { seed?: number; count?: number
 
 // ---- 4. 手前の大きな葉のシルエット ----
 // バナナの葉：細長い葉が、ところどころ風で裂けている。
-// 葉を「主脈（まん中の筋）から外へ向かう短冊」に分け、外側だけを細いくさび形にすき間をあけると、
-// 主脈の近くはつながったまま、ふちから裂けた本物らしい葉になる。
+// 葉は「1 本のつながった輪郭」として描く（部品に分けると、つなぎ目に細い線が見えてしまうため）。
+// 輪郭を根元 → 先 → 根元となぞる途中で、ところどころ「ふちから主脈のほうへ斜めに入る細い切れ込み」を入れる。
+// 本物のバナナの葉は、葉脈にそって斜めに裂けるので、切れ込みも先のほうへ傾けている。
 // bend で葉全体を弓なりにしならせる。
 function bananaLeaf(r: ReturnType<typeof seeded>) {
   const L = 100;
   const bend = r.range(-14, 14);
-  const width = r.range(15, 20);
-  const half = (t: number) => width * Math.pow(Math.sin(Math.PI * Math.min(Math.max(t, 0), 1)), 0.6) * (1 - 0.25 * t);
+  const width = r.range(15, 19);
+  // 葉の半分の幅：根元は細く、まん中が広く、先に向かってなめらかにとがる
+  const half = (t: number) => width * Math.pow(Math.sin(Math.PI * Math.min(Math.max(t, 0), 1)), 0.75) * (1 - 0.3 * t);
   // t（0 = 根元、1 = 先）の場所の、主脈からの横のずれ（しなり）
   const midX = (t: number) => bend * t * t;
   const P = (t: number, side: number, k = 1) => `${(midX(t) + side * half(t) * k).toFixed(1)} ${(-t * L).toFixed(1)}`;
-  const parts: string[] = [];
-  for (const side of [-1, 1]) {
-    let t = 0.03;
-    while (t < 0.98) {
-      const t1 = Math.min(0.995, t + r.range(0.07, 0.22)); // 裂け目の間隔はばらばら
-      const torn = t1 < 0.95 && r.chance(0.55); // この短冊のあとに裂け目を入れるか
-      const lean = 0.07; // ふち側は先のほうへずらす（裂け目が斜めに入る）
-      const gap = torn ? r.range(0.012, 0.025) : 0;
-      // 主脈 → ふち（ふちの曲線は 5 点でなめらかに）→ 主脈
-      const edge: string[] = [];
-      for (let k = 0; k <= 4; k++) {
-        const te = Math.min(0.999, t + lean + ((t1 - gap - t) * k) / 4);
-        edge.push(P(te, side));
-      }
-      parts.push(`M${P(t, side, 0)} L${edge.join(" L")} L${P(t1, side, 0)} Z`);
-      t = t1;
+
+  // 片側のふちを、根元から先までなぞる点の列（切れ込みつき）
+  const edge = (side: number) => {
+    // 切れ込みの場所：葉のまん中あたりに 2〜4 本、間隔はばらばら
+    const tears: number[] = [];
+    for (let t = r.range(0.18, 0.3); t < 0.8; t += r.range(0.1, 0.22)) tears.push(t);
+    const pts: string[] = [];
+    let t = 0.02;
+    for (const tear of tears) {
+      for (; t < tear; t += 0.02) pts.push(P(t, side));
+      const depth = r.range(0.15, 0.45); // どこまで主脈に近づくか（0 = 主脈）
+      const slant = r.range(0.05, 0.09); // 奥ほど根元側へ（斜めに裂ける）
+      const open = r.range(0.006, 0.012); // ふちでの開き（ほんの少し）
+      pts.push(P(tear, side), P(tear - slant, side, depth), P(tear + open, side));
+      t = tear + open + 0.02;
     }
-  }
-  // 先端をとがらせる
-  parts.push(`M${P(0.93, -1, 0.6)} L${P(1.04, 0, 0)} L${P(0.93, 1, 0.6)} Z`);
-  return { blade: parts.join(" "), rib: `M0 12 Q${(bend * 0.25).toFixed(1)} -50 ${midX(1).toFixed(1)} -100` };
+    for (; t < 0.995; t += 0.02) pts.push(P(t, side));
+    return pts;
+  };
+  const right = edge(1);
+  const left = edge(-1).reverse();
+  const blade = `M${P(0, 0, 0)} L${right.join(" L")} L${P(1, 0, 0)} L${left.join(" L")} Z`;
+  return { blade, rib: `M0 12 Q${(bend * 0.25).toFixed(1)} -50 ${midX(1).toFixed(1)} -100` };
 }
 
 type Silhouette = { x: number; y: number; angle: number; size: number; kind: "banana" | "palm"; d: string; rib: string };
