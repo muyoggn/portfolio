@@ -227,11 +227,11 @@ GitHub にコードが入ったら、Cloudflare に「このリポジトリが�
 |---|---|---|
 | 時間帯でライト/ダークが自動で変わる | `src/lib/theme.ts`、`src/app/layout.tsx` | ページが表示される **前** に小さなスクリプトで時刻を見て、`<html data-theme="dark">` のように印を付ける。CSS はこの印を見て色を切り替える |
 | ライト/ダークを手動で選ぶボタン | `src/components/ThemeToggle.tsx` | 押すたびに「自動 → ライト → ダーク」。選んだものは **localStorage**（ブラウザの小さな保存場所）に保存 |
-| 読んだ量に合わせて伸びるツル | `src/components/Header.tsx`、`ScrollDepth.tsx` | スクロール量を 0〜1 にして CSS 変数 `--sp` に入れ、横幅を `scaleX(--sp)` で伸ばす |
+| 読んだ量に合わせて伸びるツル | `src/components/ScrollVine.tsx`、`ScrollDepth.tsx` | 画面の幅に合わせて、くねくねした茎（ベジェ曲線）・葉っぱ・巻きひげの SVG を作る。スクロール量（0〜1）を `--sp` に入れ、茎は `stroke-dashoffset` で読んだ分だけ描き、葉と巻きひげは茎の先が届いたら開く |
 | ヒーローの文字が沈みながら消える | `globals.css` の `.hero-fade` | `--sy`（スクロール量）で透明度と位置を計算 |
-| 経歴の縦線が茎のように伸びる | `src/components/ScrollLinked.tsx` | 要素を何割読み進めたかを `--p` に入れ、`scaleY(--p)` で線を伸ばす。スクロールを戻すと縮む |
+| 経歴の縦線が茎のように伸びる | `src/components/ScrollLinked.tsx` | 要素を何割読み進めたかを `--p` に入れ、`scaleY(--p)` で線を伸ばす。スクロールを戻すと縮む。経歴は「上が過去 → 下が現在」の順に並べ、茎の伸びる向きと時間の流れをそろえている |
 | 線画イラスト（アイコン 10 種類＋作品のイメージ図） | `src/components/illustrations/Icons.tsx` | SVG の path。画面に入るとペンで描くように線が伸びる（`stroke-dashoffset`） |
-| 3D の浮かぶ森の小島 | `src/components/three/` | **three.js**。ドラッグで回る・マウスで傾く・スクロールで少し回る・夜は蛍と画面が光る |
+| 3D の浮かぶ森の小島 | `src/components/three/` | **three.js**。ドラッグで回る・マウスで傾く・スクロールで少し回る・昼は小さな花が芽を出して咲く・夜は蛍と画面が光る |
 
 ### 時刻を変えたいとき
 `src/lib/theme.ts` の次の 2 行を変えるだけです。
@@ -250,6 +250,12 @@ Figma などで描いた絵を「SVG としてコピー」して、`d="..."` の
 `islandScene.ts` の中で `add(形, 材質, x, y, z)` を 1 行足すと物が増えます。
 例：`add(new DodecahedronGeometry(0.3, 0), m.rock, 1, 0.3, -1)` で岩が 1 つ増えます（x = 左右、y = 上下、z = 手前/奥）。
 色は同じファイルの `PALETTE`（light が昼、dark が夜）で変えられます。
+
+### 3D の花の咲き方
+`islandScene.ts` の「昼だけ咲く小さな花」の部分です。花は「茎＋花びら 5 枚＋中心」でできていて、
+花びらは 1 枚ずつ「ちょうつがい」のグループに入っています。ちょうつがいの角度を上向き（`CLOSED`、つぼみ）から横向き（`OPEN`、満開）へ変えると、花が開いて見えます。
+18 秒（`CYCLE`）ごとに「芽が出る → 開く → 咲いている → 閉じて地面に戻る」をくり返し、花ごとに少しずつ時間をずらしています。
+花の色は `FLOWER_COLORS`、植える場所は `spots` で変えられます。
 
 ### 用語メモ
 - **WebGL**：ブラウザに入っている 3D 描画の機能。パソコンやスマホの GPU（絵を描く専用の部品）を使うので速い

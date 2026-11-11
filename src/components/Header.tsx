@@ -1,3 +1,4 @@
+import ScrollVine from "@/components/ScrollVine";
 import ThemeToggle from "@/components/ThemeToggle";
 import { profile } from "@/data/profile";
 
@@ -33,8 +34,8 @@ export default function Header() {
           <ThemeToggle />
         </div>
       </div>
-      {/* 読んだ量を表すバー：スクロールに合わせてツルが右へ伸びていく（--sp は ScrollDepth.tsx が更新） */}
-      <div className="scroll-vine" aria-hidden="true" />
+      {/* 読んだ量を表すツル：スクロールに合わせて、くねくね曲がりながら右へ伸びていく */}
+      <ScrollVine />
     </header>
   );
 }
