@@ -53,6 +53,7 @@ TypeScript も React も Tailwind も、すべて「その3つを楽に・安全
 │ 言語                 TypeScript（＋JSX） / CSS                 │ ← 書き方
 ├─────────────────────────────────────────────────────────────┤
 │ 見た目・部品         React（部品） / Tailwind CSS（見た目）     │ ← 道具
+│                      three.js（3D の小島だけ）                  │
 ├─────────────────────────────────────────────────────────────┤
 │ サイトの枠組み       Next.js（ページ・URL・変換の司令塔）        │ ← 枠組み
 ├─────────────────────────────────────────────────────────────┤
@@ -101,6 +102,19 @@ TypeScript も React も Tailwind も、すべて「その3つを楽に・安全
 - **何者か**：Google が無料で配っているフォント集。
 - **このサイトでの仕事**：日本語をきれいに表示（Noto Sans JP）、英数字のコード風表示（Geist Mono）。
 - **どこに出てくるか**：`src/app/layout.tsx` の `next/font/google`。Next.js がビルド時にフォントを取り込むので、見る人のブラウザが毎回 Google に取りに行く必要がありません。
+
+#### three.js（スリー・ジェイエス）※ 2026-11 追加
+- **何者か**：ブラウザに最初から入っている 3D 描画機能（**WebGL**）を、簡単に使えるようにする **ライブラリ**。Web の 3D 表現ではいちばん広く使われています。
+- **このサイトでの仕事**：About にある「浮かぶ森の小島」の 3D 表示。ドラッグで回せて、スクロールやマウスの位置にも反応し、昼と夜で色が変わります。
+- **どこに出てくるか**：`src/components/three/islandScene.ts`（3D の中身）と `src/components/three/ForestIsland.tsx`（ページに置くための React 部品）。`package.json` の `three` と、型情報の `@types/three`。
+- **なぜこれを選んだか**：
+  - Web の 3D では「定番」なので、調べると情報がたくさん見つかる（就活でも名前が通じる）
+  - React 用に包んだ `@react-three/fiber` という道具もありますが、仕組みが 1 段増えて重くなるので、今回は three.js を直接使いました。3D が 1 か所だけなら、こちらの方が軽く、「3D の基本（シーン・カメラ・ライト・描画係）」がそのまま学べます
+  - 3D モデルのファイルは使わず、three.js に入っている基本の形（円柱・円すい・多面体）を組み合わせて作っているので、追加のダウンロードがありません
+- **重くしないための工夫**：three.js は約 125KB（圧縮後）あるので、ページを開いた瞬間には読み込みません。小島が画面に近づいたときに初めて読み込み（**動的 import**）、画面の外では描画を止めます。3D が使えない環境では平面の SVG の絵が出ます。
+
+#### 線画イラスト・スクロール演出・自動ダークモード（ライブラリなし）
+- これらは **新しいライブラリを入れずに**、ブラウザ標準の機能（SVG・CSS・IntersectionObserver・localStorage）だけで作っています。仕組みは [GUIDE.md](GUIDE.md) の「10.」と [DESIGN.md](DESIGN.md) にまとめました。
 
 ### 3-3. サイトの枠組み
 
@@ -263,6 +277,9 @@ sequenceDiagram
 | `src/app/layout.tsx` | Next.js（全ページ共通の外枠） | たまに |
 | `src/app/globals.css` | Tailwind / CSS | 色を変えるとき |
 | `src/components/*.tsx` | React | 部品を増やすとき |
+| `src/components/illustrations/Icons.tsx` | SVG（線画イラスト） | イラストを増やすとき |
+| `src/components/three/*` | three.js | 3D の小島を変えるとき |
+| `src/lib/theme.ts` | TypeScript | ダークモードに切り替わる時刻を変えるとき |
 | `public/` | Next.js（そのまま配るファイル置き場） | 画像を置くとき |
 | `package.json` / `package-lock.json` | npm | ライブラリを追加するとき（`npm install 名前` で自動更新） |
 | `tsconfig.json` | TypeScript | 基本触らない |
@@ -278,7 +295,7 @@ sequenceDiagram
 
 ## 6. まとめ（ひとことで）
 
-- **TypeScript** で書き、**React** で部品にし、**Tailwind** で見た目を付ける
+- **TypeScript** で書き、**React** で部品にし、**Tailwind** で見た目を付ける。3D の小島だけは **three.js** で描く
 - それを **Next.js** がサイトとして組み立て、HTML/CSS/JS に変換する
 - これらの道具はすべて **Node.js** の上で動き、**npm** が取り寄せる。**ESLint** と型チェックが間違いを見張る
 - 変更は **Git** で記録し、**GitHub** に保管する

@@ -4,6 +4,8 @@
 // 書き換えればページ全体に反映されます。
 // =============================================================
 
+import type { IconName } from "@/components/illustrations/Icons";
+
 // 「type」は TypeScript の機能で、データの形（どんな項目を持つか）を決めます。
 // 形を決めておくと、項目の書き忘れや打ち間違いをエディタが教えてくれます。
 export type Work = {
@@ -20,6 +22,7 @@ export type Skill = {
 
 export type SkillGroup = {
   category: string;
+  icon: IconName; // カードに添えるイラスト（src/components/illustrations/Icons.tsx の名前）
   items: Skill[];
 };
 
@@ -43,11 +46,18 @@ export const profile = {
   links: {
     github: "https://github.com/muyoggn",
   },
+  // About の下に並べる「ひと目でわかる自分」。イラスト＋短い言葉で、文章を読む前に雰囲気が伝わるように
+  highlights: [
+    { icon: "research", title: "研究", text: "Java で人工市場をつくり、金融市場をシミュレーション" },
+    { icon: "plant", title: "趣味", text: "観葉植物を育てること" },
+    { icon: "cooking", title: "趣味", text: "料理をすること" },
+  ] satisfies { icon: IconName; title: string; text: string }[],
 };
 
 export const skills: SkillGroup[] = [
   {
     category: "Web",
+    icon: "web",
     items: [
       { name: "HTML" },
       { name: "CSS" },
@@ -57,6 +67,7 @@ export const skills: SkillGroup[] = [
   },
   {
     category: "プログラミング言語",
+    icon: "code",
     items: [
       { name: "Java", note: "研究" },
       { name: "Python", note: "授業" },
@@ -66,6 +77,7 @@ export const skills: SkillGroup[] = [
   },
   {
     category: "フレームワーク・ツール",
+    icon: "layers",
     items: [
       { name: "React" },
       { name: "Next.js" },
@@ -74,7 +86,11 @@ export const skills: SkillGroup[] = [
       { name: "Git / GitHub" },
     ],
   },
-  { category: "公開・インフラ", items: [{ name: "Cloudflare Workers" }] },
+  {
+    category: "公開・インフラ",
+    icon: "cloud",
+    items: [{ name: "Cloudflare Workers" }],
+  },
 ];
 
 export const works: Work[] = [
