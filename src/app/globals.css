@@ -227,30 +227,34 @@ body {
 
 /* ===== スクロール連動 ===== */
 
-/* ヘッダー下の「読んだ量」バー。--sp（0〜1）の分だけ、左から右へツルが伸びる。先端には葉っぱ */
-.scroll-vine {
-  position: absolute;
-  left: 0;
-  bottom: -1px;
-  height: 2px;
-  width: 100%;
-  background: linear-gradient(to right, var(--leaf-3), var(--accent));
-  transform: scaleX(var(--sp, 0));
-  transform-origin: left;
+/* ヘッダー下の「読んだ量」ツル（ScrollVine.tsx）。--sp（0〜1）の分だけ、くねくねした茎が左から右へ伸びる */
+.vine-stem {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  /* 線を「長さ 1 の点線」とみなし、(1 − 読んだ量) だけずらす → 読んだ分だけ線が見える */
+  stroke-dasharray: 1;
+  stroke-dashoffset: calc(1 - var(--sp, 0));
 }
-.scroll-vine::after {
-  content: "";
-  position: absolute;
-  right: -2px;
-  top: -4px;
-  width: 10px;
-  height: 10px;
-  background: var(--accent);
-  border-radius: 0 100% 0 100%; /* 角を 2 か所だけ丸めると葉っぱの形になる */
-  /* 親が横に縮むので、葉っぱだけは逆に引き伸ばして形を保つ */
-  transform: scaleX(calc(1 / max(var(--sp, 0), 0.01)));
-  transform-origin: right;
-  opacity: min(1, calc(var(--sp, 0) * 20));
+/* 巻きひげ：茎の先がそこ（--at）を通り過ぎると、くるっと巻きながら伸びる */
+.vine-curl {
+  fill: none;
+  stroke: var(--leaf-3);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: clamp(0, calc(1 - (var(--sp, 0) - var(--at, 0)) * 25), 1);
+}
+/* 葉っぱ：茎の先が届くと、根元からふくらむように開く */
+.vine-leaf {
+  fill: var(--leaf-3);
+  transform-box: fill-box; /* 拡大・縮小の基準を「この葉っぱ自身の四角」にする */
+  transform-origin: left bottom; /* 上向きの葉は左下が根元 */
+  scale: clamp(0, calc((var(--sp, 0) - var(--at, 0)) * 40), 1);
+}
+.vine-leaf.is-down {
+  transform-origin: left top; /* 下向きの葉は左上が根元 */
 }
 
 /* ヒーロー：下にスクロールすると、文字がゆっくり沈みながら薄くなる（奥へ遠ざかる感じ） */

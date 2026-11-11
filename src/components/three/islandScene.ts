@@ -38,6 +38,7 @@ import {
   Points,
   PointsMaterial,
   Scene,
+  SphereGeometry,
   WebGLRenderer,
 } from "three";
 
@@ -221,6 +222,88 @@ export function createIslandScene(
     [-0.12, 0.35, -0.04, 0.12],
   ].forEach(([x, y, z, r], i) => add(roughen(new IcosahedronGeometry(r, 0), 0.03, 30 + i), m.leaves[1], x, y, z, potted));
 
+  // ---- 昼だけ咲く小さな花 ----
+  // 地面から芽（茎）が伸び → つぼみの花びらが開き → しばらく咲いて → また閉じて地面に戻る、をくり返します。
+  // 夜（ダークモード）は花が閉じて地面に隠れ、代わりに蛍が光ります。
+  //
+  // 花びらの動かし方：花びらを「ちょうつがい（pivot）」のグループに入れ、
+  // ちょうつがいの角度を「上向き（つぼみ）」→「横向き（満開）」へ変えると、花が開いて見えます。
+  const FLOWER_COLORS = ["#ffffff", "#f6b4c6", "#ffd45e", "#c9b6f2"];
+  const petalMats = FLOWER_COLORS.map((c) => new MeshStandardMaterial({ color: c, roughness: 0.7 }));
+  const centerMat = new MeshStandardMaterial({ color: "#e3a13a", roughness: 0.6 });
+  const stemGeo = new CylinderGeometry(0.02, 0.028, 0.4, 5).translate(0, 0.2, 0); // 根元を (0,0,0) にそろえる
+  // 花びら：球を平たく細長くつぶし、根元がちょうつがいの位置に来るように少しずらす
+  const petalGeo = new SphereGeometry(0.085, 8, 5).scale(1, 0.3, 1.7).translate(0, 0, 0.13);
+  const centerGeo = new SphereGeometry(0.055, 8, 6);
+  const PETALS = 5;
+  const OPEN = -0.2; // 満開のときの花びらの角度（ほぼ横向き）
+  const CLOSED = -1.4; // つぼみのときの角度（上向きに閉じている）
+
+  // 花を植える場所（木やノートPCとぶつからないところ）
+  const spots = [
+    [-1.6, -0.3], [-1.2, 1.0], [-0.1, 1.9], [0.9, 1.75], [1.9, 0.9],
+    [2.0, -0.4], [0.5, -1.6], [-0.4, -1.9], [-1.9, -1.0], [0.15, 0.35],
+  ];
+  const flowers = spots.map(([x, z], i) => {
+    const g = new Group();
+    g.position.set(x, 0.22, z);
+    g.rotation.y = i * 1.3;
+    island.add(g);
+    const stem = new Mesh(stemGeo, m.leaves[2]);
+    g.add(stem);
+    const head = new Group(); // 茎の先（花がつく場所）
+    head.position.y = 0.4;
+    g.add(head);
+    const pivots = Array.from({ length: PETALS }, (_, k) => {
+      const pivot = new Group();
+      pivot.rotation.order = "YXZ"; // 先に向き（Y）を決めてから、開き具合（X）を傾ける
+      pivot.rotation.y = (k / PETALS) * Math.PI * 2;
+      pivot.add(new Mesh(petalGeo, petalMats[i % petalMats.length]));
+      head.add(pivot);
+      return pivot;
+    });
+    const center = new Mesh(centerGeo, centerMat);
+    head.add(center);
+    return { g, stem, head, pivots, center, delay: i * 0.6 };
+  });
+
+  // 0〜1 の範囲で、なめらかに増える値（動きの始まりと終わりをゆっくりにする）
+  const ease = (v: number) => {
+    const c = Math.min(1, Math.max(0, v));
+    return c * c * (3 - 2 * c);
+  };
+  const CYCLE = 18; // 1 回の「芽 → 開花 → 閉じる」にかける秒数
+
+  // ある花の、ある時刻での「茎の伸び（grow）」と「花の開き（open）」を計算する
+  function flowerState(time: number) {
+    if (time < 0) return { grow: 0, open: 0 };
+    const p = (time % CYCLE) / CYCLE;
+    if (p < 0.12) return { grow: ease(p / 0.12), open: 0 }; // 芽が出て茎が伸びる
+    if (p < 0.24) return { grow: 1, open: ease((p - 0.12) / 0.12) }; // 花びらが開く
+    if (p < 0.86) return { grow: 1, open: 1 }; // 咲いている
+    const q = ease((p - 0.86) / 0.14); // 閉じて、地面に戻る
+    return { grow: 1 - q, open: 1 - q };
+  }
+
+  let bloomClock = 0; // 花の時計（画面に見えている間だけ進む）
+  let isDay = theme === "light";
+  let day = isDay ? 1 : 0; // 昼らしさ 0〜1（テーマが変わったら少しずつ変える）
+
+  function updateFlowers() {
+    flowers.forEach((f, i) => {
+      // 「動きを減らす」設定では、最初から満開で止めておく
+      const { grow, open } = reducedMotion ? { grow: 1, open: 1 } : flowerState(bloomClock - f.delay);
+      const size = grow * day;
+      f.g.visible = size > 0.001;
+      f.g.scale.setScalar(Math.max(0.001, size));
+      f.head.scale.setScalar(0.4 + 0.6 * open);
+      const angle = CLOSED + (OPEN - CLOSED) * open;
+      f.pivots.forEach((pv) => (pv.rotation.x = angle));
+      f.center.scale.setScalar(open);
+      if (!reducedMotion) f.g.rotation.z = Math.sin(bloomClock * 1.4 + i) * 0.06; // 風でゆれる
+    });
+  }
+
   // ---- 光の粒（昼は花粉、夜は蛍）。たくさんの点を 1 つの物としてまとめて描く（Points） ----
   const COUNT = 45;
   const base = new Float32Array(COUNT * 3);
@@ -258,6 +341,11 @@ export function createIslandScene(
     particleMat.blending = t === "dark" ? AdditiveBlending : NormalBlending;
     particleMat.size = t === "dark" ? 0.1 : 0.06;
     particleMat.needsUpdate = true;
+    // 夜から昼に変わったら、花をもう一度「芽」から咲かせる
+    if (t === "light" && !isDay) bloomClock = 0;
+    isDay = t === "light";
+    if (reducedMotion) day = isDay ? 1 : 0;
+    updateFlowers();
     render();
   }
 
@@ -345,6 +433,11 @@ export function createIslandScene(
     island.rotation.x += (tilt.y * 0.12 - island.rotation.x) * 0.06;
     island.rotation.z += (-tilt.x * 0.06 - island.rotation.z) * 0.06;
 
+    // 花：昼らしさ（day）を目標に少しずつ近づけ、花の時計を進める
+    day += ((isDay ? 1 : 0) - day) * (reducedMotion ? 1 : 0.04);
+    bloomClock += dt;
+    updateFlowers();
+
     if (!reducedMotion) {
       island.position.y = Math.sin(t * 0.9) * 0.08; // 浮かんでいるように上下する
       crown.rotation.z = Math.sin(t * 1.3) * 0.04; // 葉が風でゆれる
@@ -388,7 +481,7 @@ export function createIslandScene(
       scene.traverse((obj) => {
         if (obj instanceof Mesh || obj instanceof Points) obj.geometry.dispose();
       });
-      [...Object.values(m).flat(), particleMat].forEach((x) => x.dispose());
+      [...Object.values(m).flat(), particleMat, ...petalMats, centerMat].forEach((x) => x.dispose());
       renderer.dispose();
       el.remove();
     },
