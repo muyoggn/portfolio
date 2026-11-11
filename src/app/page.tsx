@@ -76,7 +76,7 @@ export default function Home() {
         {/* ヒーロー：ジャングルの奥をのぞきこむような最初の画面。
             奥から順に「遠くの幹 → 光と霧 → たれ下がるツル → 植物 → 光の粒 → 手前の葉のシルエット」と重ねています */}
         <div className="relative isolate flex min-h-[92svh] items-center overflow-hidden bg-[radial-gradient(ellipse_at_50%_0%,var(--sun),transparent_70%)]">
-          <div className="parallax absolute inset-0" style={{ "--depth": 0.4 } as React.CSSProperties}>
+          <div className="silhouette-fade parallax absolute inset-0" style={{ "--depth": 0.4 } as React.CSSProperties}>
             <JungleTrunks />
           </div>
           <JungleMist />
@@ -87,7 +87,7 @@ export default function Home() {
           <HeroFoliage />
           <Fireflies />
           <JungleSilhouettes />
-          <div className="jungle-vignette pointer-events-none absolute inset-0" aria-hidden="true" />
+          <div className="jungle-vignette silhouette-fade pointer-events-none absolute inset-0" aria-hidden="true" />
           {/* hero-fade：スクロールすると中身がゆっくり沈みながら薄くなる（globals.css） */}
           <div className="hero-fade relative mx-auto w-full max-w-2xl px-6 pb-32 pt-36 sm:pt-44">
             <Reveal className="text-center">
