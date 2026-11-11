@@ -1,27 +1,62 @@
 @import "tailwindcss";
 
 /* サイト全体の色をここで決めています（CSS 変数）。
+   テーマは「森の中のエンジニア」。木漏れ日のさす森の緑に、回路のように光る葉脈とターミナル。
    ここを変えるだけで、サイトの配色をまとめて変えられます。 */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --muted: #5f6368;
-  --line: #e5e7eb;
-  --surface: #f3f4f6;
-  --accent: #2563eb;
+  color-scheme: light;
+  --background: #eef3ec; /* 朝の森の、少し緑がかった空気 */
+  --foreground: #14241a;
+  --muted: #526457;
+  --line: #d2ded1;
+  --surface: #e1eadf;
+  --accent: #2f7a4a;
+  --terminal: #13201a;
+  --terminal-text: #dfe9df;
+  --leaf: #7cc48f; /* ターミナル内の明るい緑 */
+  /* 葉っぱの色：1 が奥（空気にかすんで薄い）… 4 が手前（濃い） */
+  --leaf-1: #b5d3b6;
+  --leaf-2: #7fb48a;
+  --leaf-3: #4b8c5c;
+  --leaf-4: #24563a;
+  --vein: rgba(255, 255, 255, 0.35); /* 葉脈 */
+  --ray: rgba(255, 248, 214, 0.75); /* 木漏れ日 */
+  --particle: #fff3b8; /* 花粉の粒 */
+  --sun: #fffbe6;
+  /* 小さな花の色（白・ピンク・黄色）と花の中心 */
+  --flower-1: #ffffff;
+  --flower-2: #f6b4c6;
+  --flower-3: #ffd45e;
+  --flower-center: #e3a13a;
 }
 
-/* パソコンやスマホが「ダークモード」のときの色 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f1115;
-    --foreground: #ededed;
-    --muted: #9aa0a6;
-    --line: #2a2e36;
-    --surface: #1c1f26;
-    --accent: #60a5fa;
-  }
+/* ダークモードは「夜の森」。手前の葉はシルエットになり、葉脈が回路のように光り、蛍が飛びます。
+   <html data-theme="dark"> のときに使われます。data-theme は時間帯で自動的に決まります（src/lib/theme.ts）。 */
+:root[data-theme="dark"] {
+  color-scheme: dark; /* スクロールバーやフォーム部品もダーク用の見た目に */
+  --background: #08110c;
+  --foreground: #e2ece3;
+  --muted: #8fa394;
+  --line: #1c2a21;
+  --surface: #101b14;
+  --accent: #7cc48f;
+  --terminal: #050b08;
+  --leaf-1: #11231a;
+  --leaf-2: #173123;
+  --leaf-3: #1d3d2b;
+  --leaf-4: #0b1a11;
+  --vein: rgba(124, 196, 143, 0.55);
+  --ray: rgba(170, 255, 200, 0.07);
+  --particle: #d8ff7a;
+  --sun: #10241a;
+  --flower-1: #b9d6c2;
+  --flower-2: #9c6f80;
+  --flower-3: #b89a45;
+  --flower-center: #6f5a28;
 }
+
+/* Tailwind の「dark:〜」クラスも、OS の設定ではなく data-theme に合わせて効くようにする */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* 上の色を Tailwind のクラス名（bg-accent, text-muted など）として使えるようにする */
 @theme inline {
@@ -31,6 +66,9 @@
   --color-line: var(--line);
   --color-surface: var(--surface);
   --color-accent: var(--accent);
+  --color-terminal: var(--terminal);
+  --color-terminal-text: var(--terminal-text);
+  --color-leaf: var(--leaf);
   --font-sans: var(--font-noto-sans-jp), sans-serif;
   --font-mono: var(--font-geist-mono), monospace;
 }
@@ -42,4 +80,275 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
+  /* うっすらとした方眼紙のドット模様（エンジニアのノートっぽさ） */
+  background-image: radial-gradient(var(--line) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ===== アニメーション ===================================== */
+
+/* スクロールで浮かび上がる（Reveal 部品が is-visible を付ける） */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.7s ease,
+    transform 0.7s ease;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* ターミナルの結果の行：下から少し浮かびながらフェードイン */
+.term-out {
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+.term-out.is-shown {
+  opacity: 0.8;
+  transform: none;
+}
+
+/* ターミナルの点滅カーソル */
+.cursor {
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* ===== 森の動き ===== */
+
+/* 枝が風でゆれる（根元を支点に、ゆっくり左右に回転） */
+.sway {
+  animation: sway 6s ease-in-out infinite alternate;
+}
+@keyframes sway {
+  from {
+    rotate: -2deg;
+  }
+  to {
+    rotate: 2deg;
+  }
+}
+
+/* ページを開いたとき、枝がぐっと伸びて出てくる */
+.grow {
+  opacity: 0;
+  scale: 0.4;
+  animation: grow 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+@keyframes grow {
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+/* 葉脈：回路の配線のような細い光の線 */
+.vein {
+  fill: none;
+  stroke: var(--vein);
+  stroke-width: 2.5;
+}
+
+/* スクロール量（--sy）× 奥行き（--depth）だけ下にずらす → 奥のものほどゆっくり動いて見える */
+.parallax {
+  transform: translate3d(0, calc(var(--sy, 0) * var(--depth, 0) * 1px), 0);
+  will-change: transform;
+}
+
+/* 木漏れ日：斜めにさす光の筋が、ゆっくり明るくなったり暗くなったりする */
+.ray {
+  position: absolute;
+  top: -20%;
+  height: 140%;
+  background: linear-gradient(to bottom, var(--ray), transparent 75%);
+  rotate: 22deg;
+  filter: blur(10px);
+  opacity: 0.2;
+  animation: shimmer 7s ease-in-out infinite alternate;
+}
+@keyframes shimmer {
+  to {
+    opacity: 0.9;
+  }
+}
+
+/* 光の粒（花粉・蛍）：ふわっと現れて、ゆらゆら上へ漂って消える */
+.firefly {
+  position: absolute;
+  border-radius: 9999px;
+  background: var(--particle);
+  box-shadow: 0 0 10px 2px var(--particle);
+  opacity: 0;
+  animation: drift 10s ease-in-out infinite;
+}
+@keyframes drift {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  25% {
+    opacity: 0.9;
+  }
+  50% {
+    translate: 18px -50px;
+  }
+  75% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    translate: -10px -110px;
+  }
+}
+
+/* ===== テーマ切り替え ===== */
+
+/* ボタンでライト/ダークを切り替えた瞬間だけ、色を 0.5 秒かけてなめらかに変える */
+.theme-changing,
+.theme-changing *,
+.theme-changing *::before,
+.theme-changing *::after {
+  transition:
+    background-color 0.5s ease,
+    color 0.5s ease,
+    border-color 0.5s ease,
+    fill 0.5s ease,
+    stroke 0.5s ease !important;
+}
+
+/* ===== スクロール連動 ===== */
+
+/* ヘッダー下の「読んだ量」バー。--sp（0〜1）の分だけ、左から右へツルが伸びる。先端には葉っぱ */
+.scroll-vine {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 2px;
+  width: 100%;
+  background: linear-gradient(to right, var(--leaf-3), var(--accent));
+  transform: scaleX(var(--sp, 0));
+  transform-origin: left;
+}
+.scroll-vine::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  background: var(--accent);
+  border-radius: 0 100% 0 100%; /* 角を 2 か所だけ丸めると葉っぱの形になる */
+  /* 親が横に縮むので、葉っぱだけは逆に引き伸ばして形を保つ */
+  transform: scaleX(calc(1 / max(var(--sp, 0), 0.01)));
+  transform-origin: right;
+  opacity: min(1, calc(var(--sp, 0) * 20));
+}
+
+/* ヒーロー：下にスクロールすると、文字がゆっくり沈みながら薄くなる（奥へ遠ざかる感じ） */
+.hero-fade {
+  opacity: max(0, calc(1 - var(--sy, 0) / 650));
+  transform: translate3d(0, calc(var(--sy, 0) * 0.25px), 0);
+}
+
+/* セクション見出しの右の線：見出しが現れると、左から右へスッと伸びる */
+.heading-line {
+  scale: 0 1;
+  transform-origin: left;
+  transition: scale 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s;
+}
+.is-visible .heading-line {
+  scale: 1 1;
+}
+
+/* スキルの小さなタグ：カードが出てきたあと、1 つずつ順番にポンと出る（--i が順番） */
+.chip {
+  opacity: 0;
+  translate: 0 6px;
+  transition:
+    opacity 0.4s ease,
+    translate 0.4s ease;
+  transition-delay: calc(0.25s + var(--i, 0) * 0.06s);
+}
+.is-visible .chip {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* イラストの線：画面に入ると、ペンで描くように線が伸びていく。
+   pathLength="1" で線の長さを 1 とみなし、「点線の間隔＝1、ずらし＝1」で一度消してから 0 に戻す */
+.draw path[pathLength] {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transition: stroke-dashoffset 1.1s ease;
+  transition-delay: calc(0.15s + var(--i, 0) * 0.15s);
+}
+.is-visible .draw path[pathLength] {
+  stroke-dashoffset: 0;
+}
+
+/* 経歴の縦線：その経歴を読み進めた分（--p）だけ、上から下へ茎が伸びる */
+.stem {
+  transform: scaleY(var(--p, 0));
+  transform-origin: top;
+}
+/* 茎が届いた節（丸）に色が付く。--at はその行の位置（0〜1） */
+.node {
+  opacity: clamp(0, calc((var(--p, 0) - var(--at, 0)) * 12), 1);
+  scale: clamp(0.4, calc(0.4 + (var(--p, 0) - var(--at, 0)) * 8), 1);
+}
+
+/* 「動きを減らす」設定にしている人には、アニメーションを止めて最初から完成形を見せる */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .term-out {
+    transition: none;
+  }
+  .reveal,
+  .grow,
+  .sway,
+  .cursor {
+    animation: none;
+    transition: none;
+    opacity: 1;
+    transform: none;
+    scale: none;
+  }
+  .ray,
+  .firefly {
+    display: none;
+  }
+  .parallax,
+  .hero-fade {
+    transform: none;
+  }
+  .hero-fade {
+    opacity: 1;
+  }
+  .heading-line,
+  .chip,
+  .draw path[pathLength] {
+    transition: none;
+    scale: 1 1;
+    opacity: 1;
+    translate: none;
+    stroke-dashoffset: 0;
+  }
+  .stem {
+    transform: none;
+  }
+  .node {
+    opacity: 1;
+    scale: 1;
+  }
 }
