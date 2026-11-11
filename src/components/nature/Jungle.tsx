@@ -276,13 +276,17 @@ type Piece = { d: string; x: number; y: number; angle: number; layer: "far" | "n
 function foreground(seed: number): { pieces: Piece[]; bushes: { far: string; near: string } } {
   const r = seeded(seed);
   const pieces: Piece[] = [];
-  // 上の角からたれ下がるヤシ（奥に淡い 2 枚、手前に濃い 2 枚）
-  for (let i = 0; i < 4; i++) {
-    pieces.push({ d: hangingPalm(r), x: r.range(-120, 120), y: r.range(-60, -10), angle: r.range(-12, 18), layer: i < 2 ? "far" : "near", sway: true });
+  // 上の角からたれ下がるヤシ（奥に淡い 3 枚、手前に濃い 3 枚）。葉を重ねて、うっそうと茂った感じに
+  for (let i = 0; i < 6; i++) {
+    pieces.push({ d: hangingPalm(r), x: r.range(-140, 160), y: r.range(-70, -10), angle: r.range(-15, 22), layer: i < 3 ? "far" : "near", sway: true });
   }
-  // 下の角から生えるシダ（奥に 1 枚、手前に 2 枚）
-  for (let i = 0; i < 3; i++) {
-    pieces.push({ d: fern(r), x: r.range(-20, 140), y: H + r.range(0, 30), angle: r.range(-25, 25), layer: i === 0 ? "far" : "near", sway: true });
+  // 横の途中から生えるシダ（幹のあたりから外へ）
+  for (let i = 0; i < 2; i++) {
+    pieces.push({ d: fern(r), x: r.range(-40, 20), y: H * r.range(0.45, 0.7), angle: r.range(35, 70), layer: "far", sway: true });
+  }
+  // 下の角から生えるシダ（奥に 2 枚、手前に 3 枚）
+  for (let i = 0; i < 5; i++) {
+    pieces.push({ d: fern(r), x: r.range(-30, 200), y: H + r.range(0, 30), angle: r.range(-30, 35), layer: i < 2 ? "far" : "near", sway: true });
   }
   return { pieces, bushes: { far: bush(r, -40, r.range(380, 480), r.range(110, 150)), near: bush(r, -40, r.range(240, 320), r.range(60, 90)) } };
 }
