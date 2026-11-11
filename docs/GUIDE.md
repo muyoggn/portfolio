@@ -115,6 +115,8 @@ portfolio/
 | `npm run preview` | Cloudflare と同じ環境で、手元で動作確認する |
 | `npm run deploy` | Cloudflare に公開する（Cloudflare へのログインが必要） |
 
+> 変更を GitHub と公開サイトに反映する手順は、場面別に [UPDATE.md](UPDATE.md) にまとめています。普段は GitHub に push（または PR をマージ）するだけで自動で公開されるので、`npm run deploy` は非常用です。
+
 ---
 
 ## 6. 技術選定メモ（なぜそれを選んだか）

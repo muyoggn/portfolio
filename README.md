@@ -11,3 +11,5 @@ npm run dev      # http://localhost:3000 で確認
 npm run preview  # Cloudflare と同じ環境で確認
 npm run deploy   # Cloudflare に公開
 ```
+
+変更を GitHub と公開サイトに反映する手順（場面別）: [docs/UPDATE.md](docs/UPDATE.md)
