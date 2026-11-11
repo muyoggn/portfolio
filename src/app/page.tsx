@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import { Icon, WorkIllustration, type IconName } from "@/components/illustrations/Icons";
 import { Fireflies, SunRays } from "@/components/nature/Atmosphere";
 import { Ground, HeroFoliage, SideFoliage } from "@/components/nature/Foliage";
+import { JungleBackdrop, JungleMist, JungleSilhouettes, JungleTrunks, Lianas } from "@/components/nature/Jungle";
 import Reveal from "@/components/Reveal";
 import ScrollDepth from "@/components/ScrollDepth";
 import ScrollLinked from "@/components/ScrollLinked";
@@ -69,13 +70,24 @@ export default function Home() {
     <>
       <Header />
       <ScrollDepth />
+      <JungleBackdrop />
       <SideFoliage />
       <main id="top" className="flex-1">
-        {/* ヒーロー：森の中に立っているような最初の画面。葉・光・粒を重ねています */}
+        {/* ヒーロー：ジャングルの奥をのぞきこむような最初の画面。
+            奥から順に「遠くの幹 → 光と霧 → たれ下がるツル → 植物 → 光の粒 → 手前の葉のシルエット」と重ねています */}
         <div className="relative isolate flex min-h-[92svh] items-center overflow-hidden bg-[radial-gradient(ellipse_at_50%_0%,var(--sun),transparent_70%)]">
+          <div className="parallax absolute inset-0" style={{ "--depth": 0.4 } as React.CSSProperties}>
+            <JungleTrunks />
+          </div>
+          <JungleMist />
           <SunRays />
+          <div className="parallax pointer-events-none absolute inset-0" style={{ "--depth": 0.2 } as React.CSSProperties}>
+            <Lianas />
+          </div>
           <HeroFoliage />
           <Fireflies />
+          <JungleSilhouettes />
+          <div className="jungle-vignette pointer-events-none absolute inset-0" aria-hidden="true" />
           {/* hero-fade：スクロールすると中身がゆっくり沈みながら薄くなる（globals.css） */}
           <div className="hero-fade relative mx-auto w-full max-w-2xl px-6 pb-32 pt-36 sm:pt-44">
             <Reveal className="text-center">
