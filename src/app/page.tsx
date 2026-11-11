@@ -1,10 +1,13 @@
 import Header from "@/components/Header";
+import { Icon, WorkIllustration, type IconName } from "@/components/illustrations/Icons";
 import { Fireflies, SunRays } from "@/components/nature/Atmosphere";
 import { Ground, HeroFoliage, SideFoliage } from "@/components/nature/Foliage";
 import Reveal from "@/components/Reveal";
 import ScrollDepth from "@/components/ScrollDepth";
+import ScrollLinked from "@/components/ScrollLinked";
 import Section from "@/components/Section";
 import Terminal from "@/components/Terminal";
+import ForestIsland from "@/components/three/ForestIsland";
 import {
   certifications,
   education,
@@ -16,28 +19,42 @@ import {
 } from "@/data/profile";
 
 // 経歴の一覧（学歴・アルバイト・資格で同じ見た目を使い回すための小さな部品）
+// スクロールすると、左の縦線（茎）が上から伸びていき、届いたところの丸（節）に色が付きます。
 function CareerList({
   heading,
+  icon,
   items,
 }: {
   heading: string;
+  icon: IconName;
   items: CareerItem[];
 }) {
   return (
-    <div>
-      <h3 className="mb-4 font-bold">{heading}</h3>
-      <ol className="space-y-4 border-l-2 border-line pl-5">
-        {items.map((item) => (
-          <li key={item.title} className="relative">
-            {/* 縦線の上に乗る小さな丸（新芽のイメージ） */}
-            <span className="absolute -left-[1.72rem] top-1.5 h-3 w-3 rounded-full border-2 border-background bg-accent" />
+    <ScrollLinked>
+      <h3 className="mb-4 flex items-center gap-3 font-bold">
+        <Icon name={icon} className="h-10 w-10" />
+        {heading}
+      </h3>
+      <ol className="relative ml-5 space-y-4 pl-5">
+        {/* 灰色の線（まだ伸びていない部分）と、その上に伸びる緑の茎 */}
+        <span className="absolute inset-y-0 left-0 w-0.5 bg-line" aria-hidden="true" />
+        <span className="stem absolute inset-y-0 left-0 w-0.5 bg-accent" aria-hidden="true" />
+        {items.map((item, i) => (
+          <li
+            key={item.title}
+            className="relative"
+            style={{ "--at": (i + 0.3) / items.length } as React.CSSProperties}
+          >
+            {/* 縦線の上に乗る小さな丸（新芽のイメージ）。茎が届くと色が付く */}
+            <span className="absolute -left-[1.6rem] top-1.5 h-3 w-3 rounded-full border-2 border-background bg-line" aria-hidden="true" />
+            <span className="node absolute -left-[1.6rem] top-1.5 h-3 w-3 rounded-full border-2 border-background bg-accent" aria-hidden="true" />
             <p className="font-mono text-xs text-muted">{item.period}</p>
             <p className="mt-1">{item.title}</p>
             {item.note && <p className="text-sm text-muted">{item.note}</p>}
           </li>
         ))}
       </ol>
-    </div>
+    </ScrollLinked>
   );
 }
 
@@ -59,7 +76,8 @@ export default function Home() {
           <SunRays />
           <HeroFoliage />
           <Fireflies />
-          <div className="relative mx-auto w-full max-w-2xl px-6 pb-32 pt-36 sm:pt-44">
+          {/* hero-fade：スクロールすると中身がゆっくり沈みながら薄くなる（globals.css） */}
+          <div className="hero-fade relative mx-auto w-full max-w-2xl px-6 pb-32 pt-36 sm:pt-44">
             <Reveal className="text-center">
               <p className="font-mono text-sm text-accent">Hello, I&apos;m</p>
               <h1 className="mt-2 text-4xl font-bold sm:text-5xl">
@@ -103,11 +121,33 @@ export default function Home() {
 
         <div className="mx-auto w-full max-w-4xl px-4">
           <Section id="about" number="01" title="About">
-            <Reveal className="space-y-4 leading-relaxed">
-              {profile.about.map((text) => (
-                <p key={text}>{text}</p>
-              ))}
-            </Reveal>
+            <div className="grid items-center gap-10 md:grid-cols-[1fr_300px]">
+              <div>
+                <Reveal className="space-y-4 leading-relaxed">
+                  {profile.about.map((text) => (
+                    <p key={text}>{text}</p>
+                  ))}
+                </Reveal>
+                {/* ひと目でわかる自分：イラスト＋短い言葉 */}
+                <ul className="mt-8 grid gap-4 sm:grid-cols-3">
+                  {profile.highlights.map((h, i) => (
+                    <li key={h.text}>
+                      <Reveal delay={i * 120} className="flex items-center gap-3 sm:flex-col sm:text-center">
+                        <Icon name={h.icon} className="h-14 w-14" />
+                        <div>
+                          <p className="font-mono text-xs text-accent">{h.title}</p>
+                          <p className="text-sm">{h.text}</p>
+                        </div>
+                      </Reveal>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {/* 3D の小島：ドラッグで回せる（three.js） */}
+              <Reveal delay={200}>
+                <ForestIsland className="mx-auto max-w-[300px]" />
+              </Reveal>
+            </div>
           </Section>
 
           <Section id="skills" number="02" title="Skills">
@@ -115,12 +155,16 @@ export default function Home() {
               {skills.map((group, i) => (
                 <Reveal key={group.category} delay={i * 100}>
                   <div className={card}>
-                    <h3 className="mb-3 font-bold">{group.category}</h3>
+                    <h3 className="mb-3 flex items-center gap-3 font-bold">
+                      <Icon name={group.icon} className="h-10 w-10" />
+                      {group.category}
+                    </h3>
                     <ul className="flex flex-wrap gap-2">
-                      {group.items.map((item) => (
+                      {group.items.map((item, j) => (
                         <li
                           key={item.name}
-                          className="rounded-md bg-surface px-2 py-1 text-sm"
+                          className="chip rounded-md bg-surface px-2 py-1 text-sm"
+                          style={{ "--i": j } as React.CSSProperties}
                         >
                           {item.name}
                           {item.note && (
@@ -142,6 +186,8 @@ export default function Home() {
               {works.map((work, i) => (
                 <Reveal key={work.title} delay={i * 100}>
                   <article className={card}>
+                    {/* 作品のイメージ図（スクリーンショットの代わりのイラスト） */}
+                    <WorkIllustration className="mb-4 rounded-lg" />
                     <h3 className="font-bold">
                       {work.url ? (
                         <a
@@ -173,11 +219,11 @@ export default function Home() {
           <Section id="career" number="04" title="Career">
             <div className="grid gap-10 sm:grid-cols-2">
               <Reveal>
-                <CareerList heading="学歴" items={education} />
+                <CareerList heading="学歴" icon="school" items={education} />
               </Reveal>
               <Reveal delay={150} className="space-y-10">
-                <CareerList heading="アルバイト" items={experience} />
-                <CareerList heading="資格" items={certifications} />
+                <CareerList heading="アルバイト" icon="shop" items={experience} />
+                <CareerList heading="資格" icon="medal" items={certifications} />
               </Reveal>
             </div>
           </Section>

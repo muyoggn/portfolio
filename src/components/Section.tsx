@@ -20,7 +20,8 @@ export default function Section({ id, number, title, children }: SectionProps) {
             {"//"} {number}.
           </span>
           {title}
-          <span className="h-px flex-1 bg-line" />
+          {/* 見出しが現れると、この線が左から右へ伸びる（globals.css の .heading-line） */}
+          <span className="heading-line h-px flex-1 bg-line" />
         </h2>
       </Reveal>
       {children}
