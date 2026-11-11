@@ -272,6 +272,10 @@ body {
   fill: none;
   stroke: var(--silhouette);
 }
+/* 最初の画面の下のはしで、葉・幹・四隅の暗さがまっすぐ切れて見えないよう、下に向かって薄く消していく */
+.silhouette-fade {
+  mask-image: linear-gradient(to bottom, black 70%, transparent 98%);
+}
 
 /* 奥からさす光：中央の少し上がぼんやり明るい */
 .jungle-glow {

@@ -136,57 +136,80 @@ export function Lianas({ seed = 21, count = 9 }: { seed?: number; count?: number
 }
 
 // ---- 4. 手前の大きな葉のシルエット ----
-// バナナの葉：長い楕円の葉が、風で横に裂けている（すき間のある短冊を並べて表現）
+// バナナの葉：細長い葉が、ところどころ風で裂けている。
+// 葉を「主脈（まん中の筋）から外へ向かう短冊」に分け、外側だけを細いくさび形にすき間をあけると、
+// 主脈の近くはつながったまま、ふちから裂けた本物らしい葉になる。
+// bend で葉全体を弓なりにしならせる。
 function bananaLeaf(r: ReturnType<typeof seeded>) {
   const L = 100;
-  const half = (t: number) => 22 * Math.pow(Math.sin(Math.PI * Math.min(t, 0.99)), 0.7);
+  const bend = r.range(-14, 14);
+  const width = r.range(15, 20);
+  const half = (t: number) => width * Math.pow(Math.sin(Math.PI * Math.min(Math.max(t, 0), 1)), 0.6) * (1 - 0.25 * t);
+  // t（0 = 根元、1 = 先）の場所の、主脈からの横のずれ（しなり）
+  const midX = (t: number) => bend * t * t;
+  const P = (t: number, side: number, k = 1) => `${(midX(t) + side * half(t) * k).toFixed(1)} ${(-t * L).toFixed(1)}`;
   const parts: string[] = [];
   for (const side of [-1, 1]) {
-    let t = 0.04;
-    while (t < 0.97) {
-      const step = r.range(0.06, 0.2); // 裂け目の間隔はばらばら
-      const t1 = Math.min(0.99, t + step);
-      const gap = r.chance(0.6) ? r.range(0.006, 0.018) : 0;
-      const e0 = Math.min(t + 0.05, 0.99);
-      const e1 = Math.min(t1 + 0.05, 0.995);
-      parts.push(
-        `M0 ${(-t * L).toFixed(1)} L${(side * half(e0)).toFixed(1)} ${(-e0 * L).toFixed(1)} L${(side * half(e1)).toFixed(1)} ${(-e1 * L).toFixed(1)} L0 ${(-(t1 - gap) * L).toFixed(1)} Z`,
-      );
+    let t = 0.03;
+    while (t < 0.98) {
+      const t1 = Math.min(0.995, t + r.range(0.07, 0.22)); // 裂け目の間隔はばらばら
+      const torn = t1 < 0.95 && r.chance(0.55); // この短冊のあとに裂け目を入れるか
+      const lean = 0.07; // ふち側は先のほうへずらす（裂け目が斜めに入る）
+      const gap = torn ? r.range(0.012, 0.025) : 0;
+      // 主脈 → ふち（ふちの曲線は 5 点でなめらかに）→ 主脈
+      const edge: string[] = [];
+      for (let k = 0; k <= 4; k++) {
+        const te = Math.min(0.999, t + lean + ((t1 - gap - t) * k) / 4);
+        edge.push(P(te, side));
+      }
+      parts.push(`M${P(t, side, 0)} L${edge.join(" L")} L${P(t1, side, 0)} Z`);
       t = t1;
     }
   }
-  return parts.join(" ");
+  // 先端をとがらせる
+  parts.push(`M${P(0.93, -1, 0.6)} L${P(1.04, 0, 0)} L${P(0.93, 1, 0.6)} Z`);
+  return { blade: parts.join(" "), rib: `M0 12 Q${(bend * 0.25).toFixed(1)} -50 ${midX(1).toFixed(1)} -100` };
 }
 
-type Silhouette = { x: number; y: number; angle: number; size: number; kind: "banana" | "palm" | "monstera"; d: string };
+type Silhouette = { x: number; y: number; angle: number; size: number; kind: "banana" | "palm"; d: string; rib: string };
 
 function silhouettes(seed: number): Silhouette[] {
   const r = seeded(seed);
   const items: Silhouette[] = [];
-  // 下の角から上へ向かって伸びる大きな葉
-  for (let i = 0; i < 4; i++) {
-    items.push({ x: r.range(-40, 140), y: H + r.range(0, 60), angle: r.range(15, 70), size: r.range(300, 460), kind: "banana", d: bananaLeaf(r) });
-  }
+  const banana = (x: number, y: number, angle: number, size: number) => {
+    const leaf = bananaLeaf(r);
+    items.push({ x, y, angle, size, kind: "banana", d: leaf.blade, rib: leaf.rib });
+  };
+  // 下の角から上へ向かって伸びる葉（根元は画面の外）
+  for (let i = 0; i < 3; i++) banana(r.range(-30, 120), H - r.range(40, 160), r.range(20, 65), r.range(230, 330));
   // 上の角から垂れ下がる葉
-  for (let i = 0; i < 3; i++) {
-    items.push({ x: r.range(-30, 160), y: r.range(-60, -10), angle: r.range(110, 165), size: r.range(220, 360), kind: "banana", d: bananaLeaf(r) });
-  }
-  // ヤシのような細い葉が集まったもの
-  items.push({ x: r.range(0, 80), y: H * 0.55, angle: r.range(50, 80), size: r.range(260, 320), kind: "palm", d: "" });
+  for (let i = 0; i < 2; i++) banana(r.range(-30, 120), r.range(-40, 10), r.range(115, 160), r.range(200, 290));
+  // ヤシのような細い葉
+  items.push({ x: r.range(-20, 40), y: H * r.range(0.45, 0.6), angle: r.range(55, 80), size: r.range(240, 300), kind: "palm", d: "", rib: "" });
   return items;
 }
 
 function PalmFrond({ size }: { size: number }) {
-  // 茎に沿って、細長い葉を左右に並べる
-  const blades = Array.from({ length: 16 }, (_, i) => {
-    const t = (i + 1) / 17;
+  // 茎（しなる曲線）に沿って、細長い小葉を左右に並べる。小葉は先のほうへ向かって斜めに生え、少したれる
+  const stemX = (t: number) => 10 * t * t;
+  const blades: string[] = [];
+  for (let i = 0; i < 22; i++) {
+    const t = 0.08 + (i / 22) * 0.9;
     const side = i % 2 === 0 ? 1 : -1;
-    const len = 34 * Math.sin(Math.PI * Math.min(0.95, t + 0.1));
-    return `M0 ${-t * 100} q${side * len * 0.6} ${-len * 0.1} ${side * len} ${len * 0.35} q${-side * len * 0.5} ${-len * 0.25} ${-side * len} ${-len * 0.35}Z`;
-  });
+    const len = 38 * Math.sin(Math.PI * Math.min(0.97, t + 0.05)) + 6;
+    const bx = stemX(t);
+    const by = -t * 100;
+    // 小葉の先：外へ len、先のほうへ len*0.5、重さで少したれる
+    const tx = bx + side * len;
+    const ty = by - len * 0.45 + len * 0.25;
+    const w = 2.6;
+    blades.push(
+      `M${bx.toFixed(1)} ${by.toFixed(1)} Q${(bx + side * len * 0.5).toFixed(1)} ${(by - len * 0.45 - w).toFixed(1)} ${tx.toFixed(1)} ${ty.toFixed(1)} Q${(bx + side * len * 0.5).toFixed(1)} ${(by - len * 0.35 + w).toFixed(1)} ${bx.toFixed(1)} ${(by + 1.5).toFixed(1)}Z`,
+    );
+  }
   return (
     <g transform={`scale(${size / 100})`}>
-      <path d="M0 10 Q4 -50 0 -100" fill="none" strokeWidth={1.2} className="silhouette-stroke" />
+      <path d="M0 10 Q2 -50 10 -100" fill="none" strokeWidth={1.4} className="silhouette-stroke" />
       <path d={blades.join(" ")} />
     </g>
   );
@@ -209,7 +232,7 @@ function SilhouetteSide({ items, flip }: { items: Silhouette[]; flip?: boolean }
               <PalmFrond size={s.size} />
             ) : (
               <g transform={`scale(${(s.size / 100).toFixed(2)})`}>
-                <path d="M0 14 L0 -98" fill="none" strokeWidth={1.6} className="silhouette-stroke" />
+                <path d={s.rib} fill="none" strokeWidth={1.6} className="silhouette-stroke" />
                 <path d={s.d} />
               </g>
             )}
@@ -224,7 +247,7 @@ export function JungleSilhouettes({ seed = 3 }: { seed?: number }) {
   const left = silhouettes(seed);
   const right = silhouettes(seed + 100);
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <div className="silhouette-fade pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       <div className="absolute inset-y-0 left-0 -translate-x-[55%] sm:-translate-x-[15%]">
         <SilhouetteSide items={left} />
       </div>
@@ -239,7 +262,7 @@ export function JungleSilhouettes({ seed = 3 }: { seed?: number }) {
 export function JungleBackdrop() {
   return (
     <div className="pointer-events-none fixed inset-0 -z-20" aria-hidden="true">
-      <JungleTrunks seed={42} className="backdrop-trunks opacity-60" />
+      <JungleTrunks seed={42} className="backdrop-trunks hidden opacity-60 sm:block" />
       <div className="jungle-vignette absolute inset-0" />
     </div>
   );

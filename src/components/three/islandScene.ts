@@ -230,10 +230,11 @@ export function createIslandScene(
   // ちょうつがいの角度を「上向き（つぼみ）」→「横向き（満開）」へ変えると、花が開いて見えます。
   //
   // 自然に見せる工夫：
-  //   ・花は「群れ（群生）」で生える。群れの場所・花の数・それぞれの位置はばらばら（シード付き乱数）
+  //   ・花は 4〜5 本だけ、あちこちにポツポツ生える。位置はばらばら（シード付き乱数）
+  //   ・いっせいには咲かず、1 本ずつ順番に。芽が出て開くまでは 1.5 秒ほどと速め
   //   ・茎の高さ、花の大きさ、花びらの枚数（5 か 6）、傾きも 1 本ずつ違う
   //   ・茎には葉が付き、根元にも小さな葉が広がる
-  //   ・咲くタイミングと周期も 1 本ずつ違うので、いっせいに同じ動きをしない
+  //   ・咲いている時間（周期）も 1 本ずつ違うので、2 回目以降もいっせいに同じ動きをしない
   const FLOWER_COLORS = ["#ffffff", "#f6b4c6", "#ffd45e", "#c9b6f2"];
   const petalMats = FLOWER_COLORS.map((c) => new MeshStandardMaterial({ color: c, roughness: 0.7 }));
   const centerMat = new MeshStandardMaterial({ color: "#e3a13a", roughness: 0.6 });
@@ -256,24 +257,17 @@ export function createIslandScene(
 
   const fr = seeded(7);
   const spots: { x: number; z: number; color: number; delay: number }[] = [];
-  // 群れを 4 つ。群れごとに色の種類がだいたい決まっていて、たまに別の色が混ざる
-  for (let c = 0, tries = 0; c < 4 && tries < 200; tries++) {
+  // 花は 4〜5 本だけ、小島のあちこちにポツポツと。近くに固まらないよう、ほかの花から 0.8 以上はなす
+  const count = 4 + Math.floor(fr() * 2);
+  let nextDelay = 0.3; // 最初の花が咲き始めるまでの秒数
+  for (let tries = 0; spots.length < count && tries < 400; tries++) {
     const a = fr() * Math.PI * 2;
-    const rad = 0.6 + fr() * 1.6;
-    const cx = Math.cos(a) * rad;
-    const cz = Math.sin(a) * rad;
-    if (!free(cx, cz)) continue;
-    const color = Math.floor(fr() * FLOWER_COLORS.length);
-    const start = fr() * 5; // 群れごとに咲き始めがずれる
-    const n = 2 + Math.floor(fr() * 4);
-    for (let k = 0, t2 = 0; k < n && t2 < 40; t2++) {
-      const x = cx + (fr() - 0.5) * 0.7;
-      const z = cz + (fr() - 0.5) * 0.7;
-      if (!free(x, z) || spots.some((s2) => Math.hypot(s2.x - x, s2.z - z) < 0.18)) continue;
-      spots.push({ x, z, color: fr() < 0.8 ? color : Math.floor(fr() * FLOWER_COLORS.length), delay: start + fr() * 2.5 });
-      k++;
-    }
-    c++;
+    const rad = 0.5 + fr() * 1.7;
+    const x = Math.cos(a) * rad;
+    const z = Math.sin(a) * rad;
+    if (!free(x, z) || spots.some((s2) => Math.hypot(s2.x - x, s2.z - z) < 0.8)) continue;
+    spots.push({ x, z, color: Math.floor(fr() * FLOWER_COLORS.length), delay: nextDelay });
+    nextDelay += 0.9 + fr() * 1.4; // 次の花は 0.9〜2.3 秒あとに、1 本ずつ順番に咲く
   }
 
   const flowers = spots.map(({ x, z, color, delay }) => {
@@ -333,13 +327,19 @@ export function createIslandScene(
   };
 
   // ある花の、ある時刻での「茎の伸び（grow）」と「花の開き（open）」を計算する
+  // 動きの長さ（秒）。芽が出て開くまでは速く、咲いている時間は長く
+  const SPROUT = 0.9; // 芽が出て茎が伸びる
+  const OPEN_TIME = 0.6; // 花びらが開く
+  const CLOSE_TIME = 1.6; // 閉じて地面に戻る
+
+  // ある花の、ある時刻での「茎の伸び（grow）」と「花の開き（open）」を計算する
   function flowerState(time: number, cycle: number) {
     if (time < 0) return { grow: 0, open: 0 };
-    const p = (time % cycle) / cycle;
-    if (p < 0.12) return { grow: ease(p / 0.12), open: 0 }; // 芽が出て茎が伸びる
-    if (p < 0.24) return { grow: 1, open: ease((p - 0.12) / 0.12) }; // 花びらが開く
-    if (p < 0.86) return { grow: 1, open: 1 }; // 咲いている
-    const q = ease((p - 0.86) / 0.14); // 閉じて、地面に戻る
+    const t = time % cycle;
+    if (t < SPROUT) return { grow: ease(t / SPROUT), open: 0 }; // 芽が出て茎が伸びる
+    if (t < SPROUT + OPEN_TIME) return { grow: 1, open: ease((t - SPROUT) / OPEN_TIME) }; // 花びらがパッと開く
+    if (t < cycle - CLOSE_TIME) return { grow: 1, open: 1 }; // 咲いている
+    const q = ease((t - (cycle - CLOSE_TIME)) / CLOSE_TIME); // 閉じて、地面に戻る
     return { grow: 1 - q, open: 1 - q };
   }
 

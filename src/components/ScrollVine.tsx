@@ -17,9 +17,8 @@ import { seeded } from "@/lib/random";
 const MID = 14; // 茎の中心の高さ（SVG の上からの px）
 
 type Pt = [number, number];
-type Cubic = [Pt, Pt, Pt, Pt]; // 3 次ベジェ曲線（始点・制御点 2 つ・終点）
 type Leaf = { x: number; y: number; angle: number; size: number; shape: keyof typeof LEAF; at: number; shade: number };
-type Branch = { d: string; at: number; len: number };
+type Branch = { d: string; at: number };
 
 // 葉の形（根元が (0,0)、上（-y）に向かって伸びる。長さ 10）
 const LEAF = {
@@ -28,119 +27,122 @@ const LEAF = {
   round: "M0 0 C4 0 4.5 -6.5 0 -7.5 C-4.5 -6.5 -4 0 0 0Z",
 } as const;
 
-const toD = (cs: Cubic[]) =>
-  `M${cs[0][0].join(" ")}` + cs.map((c) => ` C${c[1].join(" ")} ${c[2].join(" ")} ${c[3].join(" ")}`).join("");
-
-// ベジェ曲線の長さを、細かく区切って足し合わせて求める（だいたいの長さで十分）
-function lengthOf(c: Cubic) {
-  let len = 0;
-  let prev = c[0];
-  for (let i = 1; i <= 12; i++) {
-    const p = pointOn(c, i / 12);
-    len += Math.hypot(p[0] - prev[0], p[1] - prev[1]);
-    prev = p;
+// 点の並びを、なめらかな曲線（Catmull-Rom → 3 次ベジェ）の d 属性に変える。
+// 点と点をただ直線でつなぐとカクカクするので、前後の点の向きから制御点を作って、つなぎ目もなめらかにする
+function smoothPath(pts: Pt[]) {
+  let d = `M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const c1: Pt = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2: Pt = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ` C${c1[0].toFixed(1)} ${c1[1].toFixed(1)} ${c2[0].toFixed(1)} ${c2[1].toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`;
   }
-  return len;
-}
-function pointOn([a, b, c, d]: Cubic, t: number): Pt {
-  const u = 1 - t;
-  const f = (i: 0 | 1) => u * u * u * a[i] + 3 * u * u * t * b[i] + 3 * u * t * t * c[i] + t * t * t * d[i];
-  return [f(0), f(1)];
+  return d;
 }
 
 function build(width: number) {
   const r = seeded(20261111);
-  const stem: Cubic[] = [];
-  const loopParts = new Set<number>(); // 1 回転の部分（ここには葉を付けず、くるっと巻いた形を見せる）
-  let x = 0;
-  let y = MID;
-  let side = r.chance(0.5) ? 1 : -1;
 
-  // ---- 茎（くねくね ＋ ときどき 1 回転） ----
-  while (x < width) {
-    if (x > 60 && x < width - 60 && r.chance(0.09)) {
-      // 1 回転：円を 4 分の 1 ずつ、4 本のベジェ曲線で描く（k は円に近づけるための決まった数）
-      const rad = r.range(6.5, 9);
-      const dir = r.chance(0.5) ? -1 : 1; // 上に巻くか下に巻くか
-      const k = 0.5523 * rad;
-      const cy = y + dir * rad;
-      const p: Pt = [x, y];
-      for (let q = 0; q < 4; q++) loopParts.add(stem.length + q);
-      stem.push([p, [x + k, y], [x + rad, cy - dir * k], [x + rad, cy]]);
-      stem.push([[x + rad, cy], [x + rad, cy + dir * k], [x + k, cy + dir * rad], [x, cy + dir * rad]]);
-      stem.push([[x, cy + dir * rad], [x - k, cy + dir * rad], [x - rad, cy + dir * k], [x - rad, cy]]);
-      stem.push([[x - rad, cy], [x - rad, cy - dir * k], [x - k + 3, y], [x + 3, y]]);
-      x += 3;
-      continue;
+  // ---- 茎：1 本のなめらかな曲線として計算する ----
+  // 「くねくね」は sin（波）で作り、波の長さ・高さを、さらにゆっくり変わる波で少しずつ変える。
+  // こうすると波が急に変わらず、本物のツルのようにゆったりとうねる。
+  const slow = (f: number, ph: number) => (x: number) => Math.sin(x * f + ph);
+  const lenWave = [slow(0.011, r.range(0, 6)), slow(0.027, r.range(0, 6))];
+  const ampWave = [slow(0.008, r.range(0, 6)), slow(0.021, r.range(0, 6))];
+  // 1 回転する場所の目安（だいたい 300〜500px に 1 回）
+  const loopTargets: number[] = [];
+  for (let x = r.range(120, 260); x < width - 80; x += r.range(280, 520)) loopTargets.push(x);
+  const loopSpots: { x: number; r: number }[] = []; // 実際に 1 回転した場所（葉を付けないため）
+
+  const pts: Pt[] = [];
+  let phase = Math.PI * r.range(0.2, 1.8);
+  const STEP = 3; // 3px ごとに点を置く
+  for (let t = -10; t <= width + 10; t += STEP) {
+    const lambda = 70 + 22 * lenWave[0](t) + 10 * lenWave[1](t); // 波の長さ：およそ 40〜100px
+    const prev = phase;
+    phase += ((Math.PI * 2) / lambda) * STEP;
+    const amp = 3.4 + 1.8 * ampWave[0](t) + 0.8 * ampWave[1](t); // 高さ：およそ 1〜6px
+    const x = t + 1.2 * Math.sin(phase); // ほんの少し前後にもゆらして、左右対称な波にならないように
+    const y = MID + amp * Math.cos(phase);
+    pts.push([x, y]);
+    // 波のいちばん下（phase が 2π の倍数）を通ったところで、目安の場所を過ぎていたら 1 回転する。
+    // 茎が真横を向いている場所なので、そこから円を 1 周描いて戻ると、つなぎ目がなめらかになる
+    if (loopTargets.length && t >= loopTargets[0] && Math.floor(prev / (Math.PI * 2)) !== Math.floor(phase / (Math.PI * 2))) {
+      loopTargets.shift();
+      const R = r.range(5, 7.5);
+      const cy = y - R; // 円の中心は茎の上
+      for (let k = 1; k <= 24; k++) {
+        const th = Math.PI / 2 - (k / 24) * Math.PI * 2; // 下 → 右 → 上 → 左 → 下 と回る
+        pts.push([x + R * Math.cos(th) + (k / 24) * 2, cy + R * Math.sin(th)]);
+      }
+      loopSpots.push({ x, r: R + 6 });
     }
-    const len = r.range(22, 70); // 波の長さはばらばら
-    const amp = r.range(1, 7.5); // 波の高さもばらばら
-    if (r.chance(0.8)) side = -side; // たまに同じ側に 2 回ふくらむ
-    const nx = x + len;
-    const ny = MID + side * amp;
-    stem.push([[x, y], [x + len * r.range(0.3, 0.55), y], [nx - len * r.range(0.3, 0.55), ny], [nx, ny]]);
-    x = nx;
-    y = ny;
+  }
+  const loopness = (x: number) => (loopSpots.some((l) => Math.abs(x - l.x) < l.r) ? 1 : 0);
+
+  // 茎にそった長さを測って、「茎の何割の場所か」（at）を出せるようにする
+  const cum = [0];
+  for (let i = 1; i < pts.length; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const total = cum[cum.length - 1];
+  const tangent = (i: number) => {
+    const a2 = pts[Math.max(0, i - 1)];
+    const b2 = pts[Math.min(pts.length - 1, i + 1)];
+    return (Math.atan2(b2[1] - a2[1], b2[0] - a2[0]) * 180) / Math.PI; // 茎の向き（度）
+  };
+
+  // ---- 葉っぱ：間隔・向き・形・大きさ・色をばらばらに。1 回転の場所には付けない ----
+  const leaves: Leaf[] = [];
+  for (let i = r.int(4, 10); i < pts.length - 2; i += r.int(7, 18)) {
+    if (loopness(pts[i][0]) > 0.15) continue;
+    const up = r.chance(0.5);
+    // 回転の角度：0° で真上。茎の向きから、上側なら −50°、下側なら +130° 前後に開く
+    const angle = tangent(i) + 90 + (up ? -140 : 40) + r.range(-25, 25);
+    leaves.push({
+      x: pts[i][0],
+      y: pts[i][1],
+      angle,
+      size: r.range(0.75, 1.45),
+      shape: r.pick(["pointed", "pointed", "heart", "round"] as const),
+      at: cum[i] / total,
+      shade: r.int(0, 2),
+    });
   }
 
-  // 茎の長さを測り、「茎の何割の場所か」（at）を出せるようにする
-  const lens = stem.map(lengthOf);
-  const total = lens.reduce((a, b) => a + b, 0);
-  let acc = 0;
-  const leaves: Leaf[] = [];
+  // ---- 枝ヅル：ときどき細いツルが分かれ、先がくるっと巻く ----
   const branches: Branch[] = [];
-
-  stem.forEach((c, i) => {
-    const start = acc;
-    acc += lens[i];
-    // ---- 葉っぱ：1 本の曲線に 0〜2 枚。位置・形・大きさ・向きはすべてばらばら ----
-    const count = loopParts.has(i) ? 0 : r.pick([0, 1, 1, 2, 2, 3]);
-    for (let j = 0; j < count; j++) {
-      const t = r.range(0.2, 0.9);
-      const [lx, ly] = pointOn(c, t);
-      const up = r.chance(0.5);
+  for (let i = r.int(30, 60); i < pts.length - 20; i += r.int(60, 140)) {
+    if (loopness(pts[i][0]) > 0.15) continue;
+    const [bx, by] = pts[i];
+    const dir = r.chance(0.65) ? 1 : -1; // 主に下（ページ側）へたれる
+    const bl = r.range(18, 36);
+    const ex = bx + bl * r.range(0.7, 1);
+    const ey = by + dir * bl * r.range(0.3, 0.6);
+    const cr = r.range(2, 3.2); // 先の巻きひげの大きさ
+    const d =
+      `M${bx.toFixed(1)} ${by.toFixed(1)} C${(bx + bl * 0.35).toFixed(1)} ${by.toFixed(1)} ${(ex - bl * 0.35).toFixed(1)} ${(ey - dir * bl * 0.25).toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}` +
+      ` c${cr} ${dir * cr} ${cr * 2.2} ${-dir * cr * 0.6} ${cr * 0.8} ${-dir * cr * 1.6}` +
+      ` c${-cr * 0.9} ${-dir * cr * 0.4} ${-cr * 1.3} ${dir * cr * 0.6} ${-cr * 0.3} ${dir * cr * 0.8}`;
+    const at = cum[i] / total;
+    branches.push({ d, at });
+    const n = r.int(1, 2);
+    for (let j = 0; j < n; j++) {
+      const t = r.range(0.3, 0.7);
       leaves.push({
-        x: lx,
-        y: ly,
-        // 回転の角度：0° で真上、90° で右、180° で真下。伸びる方向（右）へ少し傾けた向きを中心にばらつかせる
-        angle: (up ? 40 : 140) + r.range(-30, 30),
-        size: r.range(0.8, 1.5),
-        shape: r.pick(["pointed", "pointed", "heart", "round"] as const),
-        at: (start + lens[i] * t) / total,
-        shade: r.int(0, 2),
+        x: bx + (ex - bx) * t,
+        y: by + (ey - by) * t,
+        angle: (dir > 0 ? 120 : 55) + r.range(-25, 25),
+        size: r.range(0.6, 0.95),
+        shape: r.pick(["pointed", "round"] as const),
+        at: at + 0.012 * (j + 1),
+        shade: 2,
       });
     }
-    // ---- 枝ヅル：ときどき細いツルが分かれ、先がくるっと巻く ----
-    if (i > 1 && !loopParts.has(i) && r.chance(0.12)) {
-      const [bx, by] = pointOn(c, 0.5);
-      const dir = r.chance(0.65) ? 1 : -1; // 主に下（ページ側）へたれる
-      const bl = r.range(18, 38);
-      const ex = bx + bl * r.range(0.6, 1);
-      const ey = by + dir * bl * r.range(0.35, 0.7);
-      const cr = r.range(2, 3.5); // 先の巻きひげの大きさ
-      const d =
-        `M${bx} ${by} C${bx + bl * 0.3} ${by + dir * 2} ${ex - bl * 0.3} ${ey - dir * bl * 0.3} ${ex} ${ey}` +
-        ` c${cr} ${dir * cr} ${cr * 2.2} ${-dir * cr * 0.6} ${cr * 0.8} ${-dir * cr * 1.6}` +
-        ` c${-cr * 0.9} ${-dir * cr * 0.4} ${-cr * 1.3} ${dir * cr * 0.6} ${-cr * 0.3} ${dir * cr * 0.8}`;
-      const at = (start + lens[i] * 0.5) / total;
-      branches.push({ d, at, len: bl });
-      // 枝ヅルにも小さな葉を 1〜2 枚
-      for (let j = 0; j < r.int(1, 2); j++) {
-        const t = r.range(0.3, 0.7);
-        leaves.push({
-          x: bx + (ex - bx) * t,
-          y: by + (ey - by) * t,
-          angle: (dir > 0 ? 120 : 55) + r.range(-25, 25),
-          size: r.range(0.6, 0.95),
-          shape: r.pick(["pointed", "round"] as const),
-          at: at + 0.012 * (j + 1),
-          shade: 2,
-        });
-      }
-    }
-  });
+  }
 
-  return { stem: toD(stem), leaves, branches };
+  return { stem: smoothPath(pts), leaves, branches };
 }
 
 export default function ScrollVine() {
