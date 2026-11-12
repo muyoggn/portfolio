@@ -122,4 +122,5 @@ export const experience: CareerItem[] = [
 // 資格
 export const certifications: CareerItem[] = [
   { period: "2022.07", title: "実用英語技能検定 2級 合格" },
+  { period: "現在”, title: "記法情報技術者試験　勉強中" },
 ];
