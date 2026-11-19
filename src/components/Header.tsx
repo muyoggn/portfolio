@@ -1,4 +1,3 @@
-import ScrollVine from "@/components/ScrollVine";
 import ThemeToggle from "@/components/ThemeToggle";
 import { profile } from "@/data/profile";
 
@@ -14,17 +13,19 @@ const navItems = [
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-10 border-b border-line bg-background/80 backdrop-blur">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-        <a href="#top" className="shrink-0 font-serif text-base italic tracking-normal sm:text-xl">
+    // fixed：画面の上にずっと貼りついたままにする。背景を半透明＋ぼかしにして、下の内容がうっすら透ける
+    <header className="fixed inset-x-0 top-0 z-20 bg-background/70 backdrop-blur-md">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+        <a href="#top" className="shrink-0 font-display text-sm font-semibold tracking-tight sm:text-base">
           {profile.nameEn}
         </a>
-        <div className="flex items-center gap-2.5 sm:gap-5">
-          <nav>
-            <ul className="flex gap-2.5 text-[11px] text-muted sm:gap-6 sm:text-xs sm:tracking-wider">
+        <div className="flex items-center gap-3 sm:gap-6">
+          {/* スマホでは文字のメニューを隠す（最初の画面の板がメニューの代わりになる） */}
+          <nav className="hidden sm:block">
+            <ul className="flex gap-3 text-[11px] text-muted sm:gap-6 sm:text-xs">
               {navItems.map((item) => (
                 <li key={item.href}>
-                  <a href={item.href} className="hover:text-foreground">
+                  <a href={item.href} className="transition hover:text-foreground">
                     {item.label}
                   </a>
                 </li>
@@ -34,8 +35,8 @@ export default function Header() {
           <ThemeToggle />
         </div>
       </div>
-      {/* 読んだ量を表すツル：スクロールに合わせて、くねくね曲がりながら右へ伸びていく */}
-      <ScrollVine />
+      {/* 読んだ量を表す細い線（globals.css の .progress。ScrollDepth.tsx が --sp を書き込む） */}
+      <span className="progress absolute inset-x-0 bottom-0 h-px bg-accent" aria-hidden="true" />
     </header>
   );
 }
