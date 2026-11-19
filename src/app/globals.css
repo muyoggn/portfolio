@@ -1,81 +1,39 @@
 @import "tailwindcss";
 
-/* サイト全体の色をここで決めています（CSS 変数）。
-   テーマは「森の中のエンジニア」。木漏れ日のさす森の緑に、回路のように光る葉脈とターミナル。
-   ここを変えるだけで、サイトの配色をまとめて変えられます。 */
+/* =============================================================
+   サイト全体の色と動きをここで決めています。
+   テーマは「Layers（重なり）」。
+   ・色は白・黒・グレーだけにして、1 色だけ「朱色（しゅいろ）」を差し色に使う
+   ・画面の情報は少なく。そのかわり、板（プレート）が宙に重なって浮かぶ「立体感」で印象を残す
+   ・学んだことが 1 枚ずつ積み重なっていく、という意味も込めています
+   ============================================================= */
 :root {
   color-scheme: light;
-  --background: #eef3ec; /* 朝の森の、少し緑がかった空気 */
-  --foreground: #14241a;
-  --muted: #526457;
-  --line: #d2ded1;
-  --surface: #e1eadf;
-  --accent: #2f7a4a;
-  --terminal: #13201a;
-  --terminal-text: #dfe9df;
-  --leaf: #7cc48f; /* ターミナル内の明るい緑 */
-  /* 葉っぱの色：1 が奥（空気にかすんで薄い）… 4 が手前（濃い） */
-  --leaf-1: #b5d3b6;
-  --leaf-2: #7fb48a;
-  --leaf-3: #4b8c5c;
-  --leaf-4: #24563a;
-  --vein: rgba(255, 255, 255, 0.35); /* 葉脈 */
-  --ray: rgba(255, 248, 214, 0.75); /* 木漏れ日 */
-  --particle: #fff3b8; /* 花粉の粒 */
-  --sun: #fffbe6;
-  /* 小さな花の色（白・ピンク・黄色）と花の中心 */
-  --flower-1: #ffffff;
-  --flower-2: #f6b4c6;
-  --flower-3: #ffd45e;
-  --flower-center: #e3a13a;
-  /* ジャングルの奥行き（Jungle.tsx）：遠くの幹・少し手前の幹・手前の葉のシルエット・たれ下がるツル・霧・奥の光・四隅の暗さ */
-  --trunk-far: #c3d9b4;
-  --trunk-mid: #93bb8c;
-  --trunk-near: #5c9768;
-  --canopy-far: #5f9e69;
-  --canopy-near: #2f6e46;
-  --bush-far: #86b97f;
-  --bush-near: #3f7f50;
-  --liana: #4f7458;
-  --mist: rgba(255, 255, 240, 0.65);
-  --glow: rgba(255, 250, 210, 0.95);
-  --vignette: rgba(28, 58, 38, 0.3);
+  --background: #f2f1ee; /* 真っ白ではなく、少しあたたかい紙の色 */
+  --foreground: #17181b;
+  --muted: #6d6f74;
+  --line: #dddbd6;
+  --accent: #e5482b; /* 朱色。ここぞという所にだけ使う */
+  /* 浮かぶ板（LayerStack.tsx / WorkPreview.tsx）の色 */
+  --plate: rgba(255, 255, 255, 0.72); /* 板の表面 */
+  --plate-edge: rgba(23, 24, 27, 0.1); /* 板のふち */
+  --plate-side: #d9d7d1; /* 板の厚み（側面） */
+  --plate-shadow: rgba(23, 24, 27, 0.22); /* 床に落ちる影 */
 }
 
-/* ダークモードは「夜の森」。手前の葉はシルエットになり、葉脈が回路のように光り、蛍が飛びます。
-   <html data-theme="dark"> のときに使われます。data-theme は時間帯で自動的に決まります（src/lib/theme.ts）。 */
+/* ダークモード：夜は黒地に、板がうっすら光る。<html data-theme="dark"> のときに使われます。
+   data-theme は時間帯で自動的に決まります（src/lib/theme.ts）。 */
 :root[data-theme="dark"] {
-  color-scheme: dark; /* スクロールバーやフォーム部品もダーク用の見た目に */
-  --background: #08110c;
-  --foreground: #e2ece3;
-  --muted: #8fa394;
-  --line: #1c2a21;
-  --surface: #101b14;
-  --accent: #7cc48f;
-  --terminal: #050b08;
-  --leaf-1: #11231a;
-  --leaf-2: #173123;
-  --leaf-3: #1d3d2b;
-  --leaf-4: #0b1a11;
-  --vein: rgba(124, 196, 143, 0.55);
-  --ray: rgba(170, 255, 200, 0.07);
-  --particle: #d8ff7a;
-  --sun: #10241a;
-  --flower-1: #b9d6c2;
-  --flower-2: #9c6f80;
-  --flower-3: #b89a45;
-  --flower-center: #6f5a28;
-  --trunk-far: #10241a;
-  --trunk-mid: #0c1d14;
-  --trunk-near: #08160e;
-  --canopy-far: #0b1c12;
-  --canopy-near: #06120b;
-  --bush-far: #0d2016;
-  --bush-near: #07140c;
-  --liana: #163021;
-  --mist: rgba(140, 210, 165, 0.05);
-  --glow: rgba(124, 196, 143, 0.13);
-  --vignette: rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+  --background: #111215;
+  --foreground: #ecebe8;
+  --muted: #8e9096;
+  --line: #2a2c31;
+  --accent: #ff6a4d;
+  --plate: rgba(255, 255, 255, 0.05);
+  --plate-edge: rgba(255, 255, 255, 0.14);
+  --plate-side: #1f2126;
+  --plate-shadow: rgba(0, 0, 0, 0.6);
 }
 
 /* Tailwind の「dark:〜」クラスも、OS の設定ではなく data-theme に合わせて効くようにする */
@@ -87,15 +45,10 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-line: var(--line);
-  --color-surface: var(--surface);
   --color-accent: var(--accent);
-  --color-terminal: var(--terminal);
-  --color-terminal-text: var(--terminal-text);
-  --color-leaf: var(--leaf);
   --font-sans: var(--font-noto-sans-jp), sans-serif;
-  /* font-mincho：名前などの明朝体 / font-serif：英語見出しのセリフ体（layout.tsx で読み込み） */
-  --font-mincho: var(--font-shippori-mincho), serif;
-  --font-serif: var(--font-cormorant), var(--font-shippori-mincho), serif;
+  /* font-display：名前や見出しに使う、字間を詰めた英字フォント（layout.tsx で読み込み） */
+  --font-display: var(--font-inter-tight), var(--font-noto-sans-jp), sans-serif;
 }
 
 html {
@@ -105,206 +58,11 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  /* 文字と文字の間を少しだけ広げると、日本語がゆったり上品に見える */
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   font-feature-settings: "palt"; /* 句読点やカッコまわりの余白を詰めて、文字の並びを整える */
 }
 
-/* ===== アニメーション ===================================== */
-
-/* スクロールで浮かび上がる（Reveal 部品が is-visible を付ける） */
-.reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition:
-    opacity 0.7s ease,
-    transform 0.7s ease;
-}
-.reveal.is-visible {
-  opacity: 1;
-  transform: none;
-}
-
-/* ===== 森の動き ===== */
-
-/* 枝が風でゆれる（根元を支点に、ゆっくり左右に回転） */
-.sway {
-  animation: sway 6s ease-in-out infinite alternate;
-}
-@keyframes sway {
-  from {
-    rotate: -2deg;
-  }
-  to {
-    rotate: 2deg;
-  }
-}
-
-/* ページを開いたとき、枝がぐっと伸びて出てくる */
-.grow {
-  opacity: 0;
-  scale: 0.4;
-  animation: grow 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
-}
-@keyframes grow {
-  to {
-    opacity: 1;
-    scale: 1;
-  }
-}
-
-/* 葉脈：回路の配線のような細い光の線 */
-.vein {
-  fill: none;
-  stroke: var(--vein);
-  stroke-width: 2.5;
-}
-
-/* スクロール量（--sy）× 奥行き（--depth）だけ下にずらす → 奥のものほどゆっくり動いて見える */
-.parallax {
-  transform: translate3d(0, calc(var(--sy, 0) * var(--depth, 0) * 1px), 0);
-  will-change: transform;
-}
-
-/* 木漏れ日：斜めにさす光の筋が、ゆっくり明るくなったり暗くなったりする */
-.ray {
-  position: absolute;
-  top: -20%;
-  height: 140%;
-  background: linear-gradient(to bottom, var(--ray), transparent 75%);
-  rotate: 22deg;
-  filter: blur(10px);
-  opacity: 0.2;
-  animation: shimmer 7s ease-in-out infinite alternate;
-}
-@keyframes shimmer {
-  to {
-    opacity: 0.9;
-  }
-}
-
-/* 光の粒（花粉・蛍）：ふわっと現れて、ゆらゆら上へ漂って消える */
-.firefly {
-  position: absolute;
-  border-radius: 9999px;
-  background: var(--particle);
-  box-shadow: 0 0 10px 2px var(--particle);
-  opacity: 0;
-  animation: drift 10s ease-in-out infinite;
-}
-@keyframes drift {
-  0% {
-    opacity: 0;
-    translate: 0 0;
-  }
-  25% {
-    opacity: 0.9;
-  }
-  50% {
-    translate: 18px -50px;
-  }
-  75% {
-    opacity: 0.7;
-  }
-  100% {
-    opacity: 0;
-    translate: -10px -110px;
-  }
-}
-
-/* ===== ジャングル（Jungle.tsx） ===== */
-
-/* 遠くの幹は霧にかすんでぼやけ、少し手前の幹はやや濃くはっきり（色はグラデーションで Jungle.tsx 側が塗る） */
-.trunk-far {
-  filter: blur(2px);
-  opacity: 0.9;
-}
-.trunk-mid {
-  filter: blur(0.6px);
-  opacity: 0.85;
-}
-
-/* たれ下がるツル：上の付け根を支点に、ゆっくりふりこのようにゆれる。depth が小さいほど奥（薄い） */
-.liana {
-  fill: var(--liana);
-  stroke: var(--liana);
-  animation: liana-sway 9s ease-in-out infinite alternate;
-}
-.liana > ellipse,
-.liana > path + path {
-  stroke: none;
-}
-.liana.depth-1 {
-  opacity: 0.35;
-}
-.liana.depth-2 {
-  opacity: 0.6;
-}
-@keyframes liana-sway {
-  from {
-    rotate: -1.2deg;
-  }
-  to {
-    rotate: 1.2deg;
-  }
-}
-
-/* 手前の葉：黒ではなく、奥は淡い緑・手前は濃い緑で描き分ける（フラットデザインの重ね方） */
-.canopy-far {
-  fill: var(--canopy-far);
-}
-.canopy-near {
-  fill: var(--canopy-near);
-}
-.bush-far {
-  fill: var(--bush-far);
-}
-.bush-near {
-  fill: var(--bush-near);
-}
-/* 最初の画面の下のはしで、葉・幹・四隅の暗さがまっすぐ切れて見えないよう、下に向かって薄く消していく */
-.silhouette-fade {
-  mask-image: linear-gradient(to bottom, black 70%, transparent 98%);
-}
-
-/* 奥からさす光：中央の少し上がぼんやり明るい */
-.jungle-glow {
-  position: absolute;
-  left: 50%;
-  top: 38%;
-  width: 90vmax;
-  height: 90vmax;
-  translate: -50% -50%;
-  background: radial-gradient(circle, var(--glow), transparent 55%);
-}
-
-/* 霧：ぼかした楕円が、ゆっくり横にただよう */
-.mist {
-  position: absolute;
-  height: 30%;
-  background: radial-gradient(ellipse at center, var(--mist), transparent 70%);
-  filter: blur(18px);
-  animation: mist-drift 40s ease-in-out infinite alternate;
-}
-@keyframes mist-drift {
-  to {
-    translate: 18% 0;
-  }
-}
-
-/* 四隅を少し暗くして、森の奥をのぞきこんでいるような感じに */
-.jungle-vignette {
-  background: radial-gradient(ellipse at 50% 42%, transparent 45%, var(--vignette) 100%);
-}
-
-/* ページ全体の背景の幹は、文字の読みやすさのため左右のはしだけに見せる */
-.backdrop-trunks {
-  mask-image: linear-gradient(to right, black, transparent 22%, transparent 78%, black);
-}
-
-/* ===== テーマ切り替え ===== */
-
-/* ボタンでライト/ダークを切り替えた瞬間だけ、色を 0.5 秒かけてなめらかに変える */
+/* ライト/ダークを切り替えた瞬間だけ、色をふわっと変える（ThemeToggle.tsx が付け外しする） */
 .theme-changing,
 .theme-changing *,
 .theme-changing *::before,
@@ -312,66 +70,58 @@ body {
   transition:
     background-color 0.5s ease,
     color 0.5s ease,
-    border-color 0.5s ease,
-    fill 0.5s ease,
-    stroke 0.5s ease !important;
+    border-color 0.5s ease !important;
 }
 
-/* ===== スクロール連動 ===== */
+/* ===== 出てくるときの動き ===================================== */
 
-/* ヘッダー下の「読んだ量」ツル（ScrollVine.tsx）。--sp（0〜1）の分だけ、くねくねした茎が左から右へ伸びる */
-.vine-stem {
-  fill: none;
-  stroke: var(--accent);
-  stroke-width: 2;
-  stroke-linecap: round;
-  /* 線を「長さ 1 の点線」とみなし、(1 − 読んだ量) だけずらす → 読んだ分だけ線が見える */
-  stroke-dasharray: 1;
-  stroke-dashoffset: calc(1 - var(--sp, 0));
+/* スクロールで浮かび上がる（Reveal 部品が is-visible を付ける） */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.8s ease,
+    transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-/* 巻きひげ：茎の先がそこ（--at）を通り過ぎると、くるっと巻きながら伸びる */
-.vine-curl {
-  fill: none;
-  stroke: var(--leaf-3);
-  stroke-width: 1.2;
-  stroke-linecap: round;
-  stroke-dasharray: 1;
-  stroke-dashoffset: clamp(0, calc(1 - (var(--sp, 0) - var(--at, 0)) * 18), 1);
-}
-/* 葉っぱ：茎の先が届くと、根元からふくらむように開く。色は 3 段階（shade-0〜2）でばらつかせる */
-.vine-leaf {
-  fill: var(--leaf-3);
-  transform-origin: 0 0; /* 葉の根元（ScrollVine.tsx で (0,0) にそろえてある）を中心に拡大する */
-  scale: clamp(0, calc((var(--sp, 0) - var(--at, 0)) * 40), 1);
-}
-.vine-leaf.shade-0 {
-  fill: var(--accent);
-}
-.vine-leaf.shade-2 {
-  fill: var(--leaf-2);
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
 }
 
-/* ヒーロー：下にスクロールすると、文字がゆっくり沈みながら薄くなる（奥へ遠ざかる感じ） */
-.hero-fade {
-  opacity: max(0, calc(1 - var(--sy, 0) / 650));
-  transform: translate3d(0, calc(var(--sy, 0) * 0.25px), 0);
+/* 見出し用：寝かせた板を起こすように、奥から手前へパタンと立ち上がる。
+   perspective（遠近法）を付けて X 軸で回すと、平面の文字でも立体的に見えます */
+.reveal.flip {
+  transform: perspective(900px) rotateX(-75deg) translateY(10px);
+  transform-origin: 50% 100%;
+}
+.reveal.flip.is-visible {
+  transform: none;
 }
 
-/* 細い区切り線：画面に入ると、左から右へスッと引かれる（見出しの下・経歴の各行など） */
+/* 細い区切り線：画面に入ると、左から右へスッと引かれる */
 .rule {
   scale: 0 1;
   transform-origin: left;
   transition: scale 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s;
 }
-.is-visible .rule,
-.is-visible.rule {
+.is-visible .rule {
   scale: 1 1;
 }
 
-/* ヒーロー下の「Scroll」の線：上から下へ、光がすっと流れ落ちる */
+/* ヘッダーの下の線：ページを読んだ量（--sp：0〜1）だけ、左から伸びる */
+.progress {
+  transform: scaleX(var(--sp, 0));
+  transform-origin: left;
+}
+
+/* ヒーロー：下にスクロールすると、文字がゆっくり薄くなる */
+.hero-fade {
+  opacity: max(0, calc(1 - var(--sy, 0) / 600));
+}
+
+/* 「Scroll」の線：上から下へ、光がすっと流れ落ちる */
 .scroll-cue {
   animation: scroll-cue 2.4s cubic-bezier(0.6, 0, 0.3, 1) infinite;
-  transform-origin: top;
 }
 @keyframes scroll-cue {
   0% {
@@ -391,16 +141,92 @@ body {
   }
 }
 
-/* イラストの線：画面に入ると、ペンで描くように線が伸びていく。
-   pathLength="1" で線の長さを 1 とみなし、「点線の間隔＝1、ずらし＝1」で一度消してから 0 に戻す */
-.draw path[pathLength] {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  transition: stroke-dashoffset 1.1s ease;
-  transition-delay: calc(0.15s + var(--i, 0) * 0.15s);
+/* ===== 宙に浮かぶ板（LayerStack.tsx） ==========================
+   CSS だけで 3D を作っています。ポイントは 3 つ：
+   1. perspective：見る人の目からの距離。これがあると、奥の物が小さく見える
+   2. transform-style: preserve-3d：子どもの要素も同じ 3D 空間に置く
+   3. translateZ：画面の奥・手前方向に動かす。板ごとに高さを変えて積み重ねる
+   ============================================================= */
+.stack-scene {
+  perspective: 1600px;
 }
-.is-visible .draw path[pathLength] {
-  stroke-dashoffset: 0;
+.stack {
+  position: relative;
+  transform-style: preserve-3d;
+  /* 斜め上から見下ろす角度。--mx / --my はマウスの位置（-0.5〜0.5）で、少しだけ向きが変わる */
+  transform: rotateX(calc(56deg - var(--my, 0) * 12deg)) rotateZ(calc(-40deg + var(--mx, 0) * 16deg));
+}
+/* 板どうしの間隔。スクロールすると広がって、重なりがほどけていく。
+   --lift：マウスを乗せた板より上にある板は 1 になり、上へ持ち上がって、選んだ板の表面が見えるようになる */
+.plate {
+  --gap: calc(46px + min(var(--sy, 0), 700) * 0.1px);
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-style: preserve-3d;
+  transform: translateZ(calc(var(--z) * var(--gap) + var(--lift, 0) * 90px));
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  outline: none;
+}
+/* 板の表面。ゆっくり上下にただよう（板ごとに少しずつタイミングをずらす） */
+.plate-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: var(--plate);
+  border: 1px solid var(--plate-edge);
+  transform-style: preserve-3d;
+  animation: float 7s ease-in-out infinite;
+  animation-delay: calc(var(--z) * -0.9s);
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+/* 板の厚み：表面の少し下に、色の濃い同じ形をもう 1 枚置く */
+.plate-face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--plate-side);
+  transform: translateZ(-5px);
+}
+.plate.is-active .plate-face {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+@keyframes float {
+  0%,
+  100% {
+    translate: 0 0 0;
+  }
+  50% {
+    translate: 0 0 8px;
+  }
+}
+/* 床に落ちる影（いちばん下の板より、さらに下） */
+.stack-shadow {
+  position: absolute;
+  inset: 8%;
+  border-radius: 40px;
+  background: var(--plate-shadow);
+  filter: blur(28px);
+  transform: translateZ(-60px);
+}
+
+/* ===== マウスで傾くカード（Tilt.tsx） ===================== */
+.tilt {
+  perspective: 1200px;
+}
+.tilt-inner {
+  transform-style: preserve-3d;
+  transform: rotateX(calc(var(--ty, 0) * -10deg)) rotateY(calc(var(--tx, 0) * 14deg));
+  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* 中の部品に depth を付けると、傾けたときに手前ほど大きくずれて立体的に見える */
+.depth {
+  transform: translateZ(calc(var(--d, 0) * 1px));
 }
 
 /* 「動きを減らす」設定にしている人には、アニメーションを止めて最初から完成形を見せる */
@@ -409,38 +235,23 @@ body {
     scroll-behavior: auto;
   }
   .reveal,
-  .grow,
-  .sway {
-    animation: none;
+  .reveal.flip {
     transition: none;
     opacity: 1;
     transform: none;
-    scale: none;
   }
-  .ray,
-  .firefly {
-    display: none;
-  }
-  .liana,
-  .mist {
-    animation: none;
-  }
-  .parallax,
-  .hero-fade {
-    transform: none;
-  }
-  .hero-fade {
-    opacity: 1;
-  }
-  .rule,
-  .draw path[pathLength] {
+  .rule {
     transition: none;
     scale: 1 1;
-    opacity: 1;
-    translate: none;
-    stroke-dashoffset: 0;
   }
+  .plate-face,
   .scroll-cue {
     animation: none;
+  }
+  .plate {
+    --gap: 46px;
+  }
+  .tilt-inner {
+    transform: none;
   }
 }

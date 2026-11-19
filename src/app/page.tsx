@@ -1,12 +1,10 @@
 import Header from "@/components/Header";
-import { WorkIllustration } from "@/components/illustrations/WorkIllustration";
-import { Fireflies, SunRays } from "@/components/nature/Atmosphere";
-import { Ground, HeroFoliage, SideFoliage } from "@/components/nature/Foliage";
-import { JungleBackdrop, JungleMist, JungleSilhouettes, JungleTrunks, Lianas } from "@/components/nature/Jungle";
+import LayerStack from "@/components/LayerStack";
 import Reveal from "@/components/Reveal";
 import ScrollDepth from "@/components/ScrollDepth";
 import Section from "@/components/Section";
-import ForestIsland from "@/components/three/ForestIsland";
+import Tilt from "@/components/Tilt";
+import WorkPreview from "@/components/WorkPreview";
 import {
   certifications,
   education,
@@ -31,75 +29,62 @@ export default function Home() {
     <>
       <Header />
       <ScrollDepth />
-      <JungleBackdrop />
-      <SideFoliage />
       <main id="top" className="flex-1">
-        {/* ヒーロー：ジャングルの奥をのぞきこむような最初の画面。
-            奥から順に「木の幹 → 光と霧 → たれ下がるツル → 生い茂る植物 → 光の粒 → 手前の葉（ヤシ・シダ・草むら）」と重ねています */}
-        <div className="relative isolate flex min-h-[92svh] items-center overflow-hidden bg-[radial-gradient(ellipse_at_50%_0%,var(--sun),transparent_70%)]">
-          <div className="silhouette-fade parallax absolute inset-0" style={{ "--depth": 0.4 } as React.CSSProperties}>
-            <JungleTrunks />
-          </div>
-          <JungleMist />
-          <SunRays />
-          <div className="parallax pointer-events-none absolute inset-0" style={{ "--depth": 0.2 } as React.CSSProperties}>
-            <Lianas />
-          </div>
-          <HeroFoliage />
-          <Fireflies />
-          <JungleSilhouettes />
-          <div className="jungle-vignette silhouette-fade pointer-events-none absolute inset-0" aria-hidden="true" />
-          {/* hero-fade：スクロールすると中身がゆっくり沈みながら薄くなる（globals.css）
-              名前は「縦書き」にしています。[writing-mode:vertical-rl] は「文字を上から下へ、行を右から左へ」並べる CSS。
-              日本語ならではの組み方で、よくある「Hello, I'm 〇〇」の横書きテンプレートと差を付けています */}
-          <div className="hero-fade relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 pb-44 pt-32 sm:pt-40">
-            <Reveal className="flex items-start gap-5 sm:gap-8">
-              <p className="pt-3 text-xs tracking-[0.4em] text-muted [writing-mode:vertical-rl] sm:text-sm">
-                {profile.role}
-              </p>
-              <h1 className="font-mincho text-6xl font-medium tracking-[0.18em] [writing-mode:vertical-rl] sm:text-8xl">
-                {profile.name}
-              </h1>
-            </Reveal>
-            <Reveal delay={350}>
-              <p className="mt-6 font-serif text-2xl italic tracking-wide text-muted sm:text-3xl">
-                {profile.nameEn}
-              </p>
-            </Reveal>
-            {profile.catchCopy && (
-              <Reveal delay={500}>
-                <p className="mt-6 text-sm leading-loose tracking-[0.2em]">{profile.catchCopy}</p>
+        {/* ヒーロー（最初の画面）：左に名前、右に宙に浮かぶ板の重なり。置く情報はこれだけにして、余白で見せる */}
+        <section className="relative flex min-h-[100svh] items-center overflow-hidden">
+          <div className="mx-auto grid w-full max-w-6xl items-center gap-6 px-6 pb-24 pt-28 lg:grid-cols-[1.1fr_1fr]">
+            <div className="hero-fade">
+              <Reveal>
+                <p className="text-xs tracking-[0.3em] text-muted">PORTFOLIO</p>
               </Reveal>
-            )}
+              <Reveal delay={120}>
+                <h1 className="mt-6 font-display text-[clamp(3.75rem,11vw,8.5rem)] font-semibold leading-[0.86] tracking-[-0.05em]">
+                  Go
+                  <br />
+                  Nagayama
+                  <span className="text-accent">.</span>
+                </h1>
+              </Reveal>
+              <Reveal delay={260}>
+                <p className="mt-10 text-sm">
+                  {profile.name}
+                  {/* スマホでは大学名を次の行に回して、変なところで折り返さないようにする */}
+                  <span className="mx-3 hidden h-px w-6 translate-y-[-0.3em] bg-foreground/40 align-middle sm:inline-block" aria-hidden="true" />
+                  <span className="mt-1 block text-muted sm:mt-0 sm:inline">{profile.role}</span>
+                </p>
+              </Reveal>
+              {profile.catchCopy && (
+                <Reveal delay={380}>
+                  <p className="mt-4 text-sm leading-loose text-muted">{profile.catchCopy}</p>
+                </Reveal>
+              )}
+            </div>
+            <Reveal delay={300}>
+              <LayerStack className="mt-14 h-[340px] sm:h-[460px] lg:mt-0" />
+            </Reveal>
           </div>
           {/* 下へ読み進められることを、細い線が流れ落ちる動きでそっと知らせる */}
           <a
             href="#about"
-            className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-3 font-serif text-sm italic tracking-[0.2em] text-foreground/70 hover:text-foreground"
+            className="absolute bottom-8 left-6 flex items-center gap-3 text-[11px] tracking-[0.3em] text-muted transition hover:text-foreground sm:left-[max(1.5rem,calc((100vw-72rem)/2+1.5rem))]"
           >
-            scroll
-            <span className="relative h-14 w-px overflow-hidden bg-foreground/15" aria-hidden="true">
-              <span className="scroll-cue absolute inset-0 bg-foreground/70" />
+            <span className="relative block h-10 w-px overflow-hidden bg-line" aria-hidden="true">
+              <span className="scroll-cue absolute inset-0 bg-foreground" />
             </span>
+            SCROLL
           </a>
-        </div>
+        </section>
 
-        <div className="mx-auto w-full max-w-5xl px-6">
-          <Section id="about" title="About" label="自己紹介">
-            <div className="grid items-start gap-12 lg:grid-cols-[1fr_15rem]">
-              <Reveal className="max-w-[34em] space-y-6 text-[15px] leading-[2.1]">
-                {profile.about.map((text) => (
-                  <p key={text}>{text}</p>
-                ))}
-              </Reveal>
-              {/* 3D の小島：ドラッグで回せる（three.js） */}
-              <Reveal delay={200}>
-                <ForestIsland className="mx-auto max-w-[260px]" />
-              </Reveal>
-            </div>
+        <div className="mx-auto w-full max-w-6xl px-6">
+          <Section id="about" number="01" title="About" label="自己紹介">
+            <Reveal className="max-w-[36em] space-y-6 text-[15px] leading-[2.1]">
+              {profile.about.map((text) => (
+                <p key={text}>{text}</p>
+              ))}
+            </Reveal>
           </Section>
 
-          <Section id="skills" title="Skills" label="できること">
+          <Section id="skills" number="02" title="Skills" label="できること">
             {/* dl（定義リスト）：「見出し（dt）と説明（dd）」の組を並べるための HTML タグ */}
             <dl className="border-b border-line">
               {skills.map((group, i) => (
@@ -121,20 +106,20 @@ export default function Home() {
             </dl>
           </Section>
 
-          <Section id="works" title="Works" label="つくったもの">
-            <ol className="space-y-20">
+          <Section id="works" number="03" title="Works" label="つくったもの">
+            <ol className="space-y-24">
               {works.map((work, i) => (
                 <li key={work.title}>
-                  <Reveal className="group grid items-center gap-8 lg:grid-cols-[1.15fr_1fr]">
-                    {/* 作品のイメージ図（スクリーンショットを用意するまでの仮のイラスト）。マウスを乗せると少しだけ寄る */}
-                    <div className="overflow-hidden rounded-sm">
-                      <WorkIllustration className="transition duration-700 group-hover:scale-[1.03]" />
-                    </div>
+                  <Reveal className="grid items-center gap-10 lg:grid-cols-[1.2fr_1fr]">
+                    {/* マウスを乗せると傾いて、ミニチュアの層が立体的にずれる */}
+                    <Tilt>
+                      <WorkPreview />
+                    </Tilt>
                     <div>
-                      <p className="font-serif text-lg italic text-muted">
-                        No.{String(i + 1).padStart(2, "0")}
+                      <p className="font-display text-sm tabular-nums text-muted">
+                        {String(i + 1).padStart(2, "0")}
                       </p>
-                      <h3 className="mt-2 font-mincho text-2xl font-medium">{work.title}</h3>
+                      <h3 className="mt-2 text-2xl font-medium">{work.title}</h3>
                       <p className="mt-4 text-sm leading-loose text-muted">{work.description}</p>
                       {work.tech.length > 0 && (
                         <p className="mt-5 text-xs leading-relaxed text-muted">{work.tech.join(" ／ ")}</p>
@@ -144,10 +129,14 @@ export default function Home() {
                           href={work.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-6 inline-flex items-center gap-2 border-b border-foreground/40 pb-1 text-sm transition hover:border-accent hover:text-accent"
+                          className="group mt-6 inline-flex items-center gap-2 text-sm"
                         >
-                          {work.url.replace("https://", "")}
-                          <span aria-hidden="true">↗</span>
+                          <span className="border-b border-foreground/30 pb-1 transition group-hover:border-accent group-hover:text-accent">
+                            {work.url.replace("https://", "")}
+                          </span>
+                          <span className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true">
+                            ↗
+                          </span>
                         </a>
                       )}
                     </div>
@@ -157,7 +146,7 @@ export default function Home() {
             </ol>
           </Section>
 
-          <Section id="career" title="Career" label="経歴">
+          <Section id="career" number="04" title="Career" label="経歴">
             <div className="space-y-14">
               {careerGroups.map((group) => (
                 <div key={group.label}>
@@ -182,20 +171,20 @@ export default function Home() {
             </div>
           </Section>
 
-          <Section id="contact" title="Contact" label="連絡先">
+          <Section id="contact" number="05" title="Contact" label="連絡先">
             <Reveal>
               <p className="text-sm text-muted">GitHub</p>
-              {/* マウスを乗せると、文字の下に線が左から引かれる */}
+              {/* マウスを乗せると、文字の下に線が左から引かれ、矢印が右上へ動く */}
               <a
                 href={profile.links.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group mt-3 inline-flex items-baseline gap-3 font-serif text-3xl italic tracking-normal sm:text-5xl"
+                className="group mt-3 inline-flex items-baseline gap-3 font-display text-3xl font-medium tracking-[-0.03em] sm:text-5xl"
               >
-                <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-left-bottom bg-no-repeat pb-1 transition-[background-size] duration-500 group-hover:bg-[length:100%_1px]">
+                <span className="bg-[linear-gradient(var(--accent),var(--accent))] bg-[length:0%_2px] bg-left-bottom bg-no-repeat pb-1 transition-[background-size] duration-500 group-hover:bg-[length:100%_2px]">
                   {profile.links.github.replace("https://", "")}
                 </span>
-                <span className="text-2xl transition group-hover:-translate-y-1 group-hover:translate-x-1" aria-hidden="true">
+                <span className="text-2xl text-accent transition group-hover:-translate-y-1 group-hover:translate-x-1" aria-hidden="true">
                   ↗
                 </span>
               </a>
@@ -203,10 +192,11 @@ export default function Home() {
           </Section>
         </div>
       </main>
-      {/* ページのいちばん下も、植物の茂みで締めくくる */}
-      <Ground className="h-20 sm:h-36" />
-      <footer className="bg-[var(--leaf-4)] py-6 text-center text-xs tracking-[0.2em] text-white/70">
-        © {new Date().getFullYear()} {profile.nameEn}
+      <footer className="mx-auto flex w-full max-w-6xl items-center justify-between border-t border-line px-6 py-8 text-xs text-muted">
+        <p>© {new Date().getFullYear()} {profile.nameEn}</p>
+        <a href="#top" className="transition hover:text-foreground">
+          Back to top ↑
+        </a>
       </footer>
     </>
   );

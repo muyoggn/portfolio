@@ -4,25 +4,26 @@ import Reveal from "@/components/Reveal";
 // 同じ見た目を何度も書かずに済むよう、部品（コンポーネント）にしています。
 // props（プロップス）は、部品に外から渡す値のことです。
 //
-// レイアウト：広い画面では「左に見出し・右に中身」の 2 列。雑誌や作品集でよく使われる組み方で、
-// 見出しが左の余白に置かれることで、中身の文章がゆったり読めます。
-// スマホでは見出しが上、中身が下の 1 列になります。
+// 見出しは大きな英字＋右肩に小さな番号。画面に入ると、寝かせた板が起き上がるように立ち上がります（.flip）。
+// 広い画面では「左に見出し・右に中身」の 2 列、スマホでは上下の 1 列になります。
 type SectionProps = {
   id: string;
+  number: string; // 右肩の小さな番号（01 など）
   title: string; // 英語の見出し（About など）
   label: string; // 日本語の小さな添え書き（自己紹介 など）
   children: React.ReactNode;
 };
 
-export default function Section({ id, title, label, children }: SectionProps) {
+export default function Section({ id, number, title, label, children }: SectionProps) {
   return (
-    <section id={id} className="scroll-mt-20 py-20 sm:py-28">
-      <div className="grid gap-10 md:grid-cols-[13rem_1fr] md:gap-12">
-        <Reveal>
-          {/* md:sticky：スクロールしても、そのセクションを読んでいる間は見出しが左に残る */}
+    <section id={id} className="scroll-mt-20 py-24 sm:py-32">
+      <div className="grid gap-10 md:grid-cols-[16rem_1fr] md:gap-12">
+        <Reveal className="flip">
+          {/* md:sticky：そのセクションを読んでいる間は、見出しが左に残る */}
           <header className="md:sticky md:top-28">
-            <h2 className="font-serif text-5xl font-normal italic leading-none tracking-normal sm:text-6xl">
+            <h2 className="font-display text-5xl font-semibold leading-none tracking-[-0.04em] sm:text-6xl">
               {title}
+              <sup className="ml-1.5 align-super text-xs font-medium tracking-normal text-accent">{number}</sup>
             </h2>
             <p className="mt-4 text-xs tracking-[0.3em] text-muted">{label}</p>
           </header>

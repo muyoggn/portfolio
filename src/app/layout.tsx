@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cormorant_Garamond, Noto_Sans_JP, Shippori_Mincho } from "next/font/google";
+import { Inter_Tight, Noto_Sans_JP } from "next/font/google";
 import { profile } from "@/data/profile";
 import { themeInitScript } from "@/lib/theme";
 import "./globals.css";
@@ -10,21 +10,11 @@ const notoSansJp = Noto_Sans_JP({
   subsets: ["latin"],
 });
 
-// 名前や大きな見出しに使う明朝体（筆で書いたような、細くて上品な日本語フォント）。
-// ゴシック体（Noto Sans JP）だけだと「よくあるテンプレート」の印象になりやすいので、
-// 目立たせたい所だけ明朝体にして、雑誌のようなメリハリを付けています。
-const shipporiMincho = Shippori_Mincho({
-  variable: "--font-shippori-mincho",
-  weight: ["500", "700"],
-  subsets: ["latin"],
-});
-
-// 英語の見出し（About / Works など）に使う、細身のセリフ体（文字の端に小さな飾りがある書体）。
-// 斜体（italic）にすると、手書きのような柔らかさが出ます。
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
-  weight: ["400", "500"],
-  style: ["normal", "italic"],
+// 名前や見出しに使う英字フォント。字と字の間をぎゅっと詰めて大きく置くと、
+// 少ない文字でも「顔」になる見出しが作れます。
+const interTight = Inter_Tight({
+  variable: "--font-inter-tight",
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
 });
 
@@ -39,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ja"
-      className={`${notoSansJp.variable} ${shipporiMincho.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${notoSansJp.variable} ${interTight.variable} h-full antialiased`}
       // <head> のスクリプトが data-theme を書き足すので、「サーバーの HTML と違う」という警告を出さないようにする
       suppressHydrationWarning
     >
