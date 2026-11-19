@@ -98,9 +98,9 @@ TypeScript も React も Tailwind も、すべて「その3つを楽に・安全
 - **このサイトでの仕事**：すべての見た目（余白・文字の大きさ・色・スマホ対応）を担当。使ったクラスだけを集めて、小さな CSS ファイルを自動で作ってくれます。
 - **どこに出てくるか**：各 `.tsx` の `className="..."`。`globals.css` の `@import "tailwindcss";` と `@theme`（自分の色 `accent` などを Tailwind のクラス名として使えるようにする設定）。`next.config.ts` の `@tailwindcss/turbopack` は「Next.js の変換係に Tailwind を組み込む」ための接続部品です。
 
-#### Google Fonts（Noto Sans JP / Geist Mono）
+#### Google Fonts（Noto Sans JP / Shippori Mincho / Cormorant Garamond）
 - **何者か**：Google が無料で配っているフォント集。
-- **このサイトでの仕事**：日本語をきれいに表示（Noto Sans JP）、英数字のコード風表示（Geist Mono）。
+- **このサイトでの仕事**：本文の日本語（Noto Sans JP：ゴシック体）、名前や作品名（Shippori Mincho：明朝体）、英語の見出し About / Works など（Cormorant Garamond：細身のセリフ体）。書体を使い分けることで、テンプレートっぽさを減らして上品なメリハリを出しています。
 - **どこに出てくるか**：`src/app/layout.tsx` の `next/font/google`。Next.js がビルド時にフォントを取り込むので、見る人のブラウザが毎回 Google に取りに行く必要がありません。
 
 #### three.js（スリー・ジェイエス）※ 2026-11 追加

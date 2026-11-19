@@ -15,13 +15,13 @@ const navItems = [
 export default function Header() {
   return (
     <header className="sticky top-0 z-10 border-b border-line bg-background/80 backdrop-blur">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-        <a href="#top" className="shrink-0 font-mono text-xs font-bold sm:text-sm">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
+        <a href="#top" className="shrink-0 font-serif text-base italic tracking-normal sm:text-xl">
           {profile.nameEn}
         </a>
-        <div className="flex items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-5">
           <nav>
-            <ul className="flex gap-2.5 text-xs text-muted sm:gap-4 sm:text-sm">
+            <ul className="flex gap-2.5 text-[11px] text-muted sm:gap-6 sm:text-xs sm:tracking-wider">
               {navItems.map((item) => (
                 <li key={item.href}>
                   <a href={item.href} className="hover:text-foreground">

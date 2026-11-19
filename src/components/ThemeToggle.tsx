@@ -66,7 +66,7 @@ export default function ThemeToggle() {
       onClick={choose}
       title={mode ? `${LABEL[mode]}（クリックで切り替え）` : "テーマ切り替え"}
       aria-label={mode ? `テーマ：${LABEL[mode]}。クリックで切り替え` : "テーマ切り替え"}
-      className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-line px-2 text-muted transition hover:border-accent hover:text-foreground"
+      className="flex h-8 shrink-0 items-center gap-1.5 text-muted transition hover:text-foreground"
     >
       {/* 太陽か月のアイコン（今の見た目） */}
       <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
@@ -80,7 +80,7 @@ export default function ThemeToggle() {
         )}
       </svg>
       {/* 今のモード名（AUTO / LIGHT / DARK）を小さく添える */}
-      <span className="hidden font-mono text-[10px] leading-none sm:inline">
+      <span className="hidden text-[10px] leading-none tracking-wider sm:inline">
         {mode === "auto" ? "AUTO" : mode === null ? "" : mode.toUpperCase()}
       </span>
     </button>
