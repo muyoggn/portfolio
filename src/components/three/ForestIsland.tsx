@@ -79,8 +79,8 @@ export default function ForestIsland({ className = "" }: { className?: string })
         {/* 3D が準備できるまで（または使えない環境で）見せる平面の絵 */}
         {!ready && <Fallback />}
       </div>
-      <figcaption className="mt-2 text-center font-mono text-xs text-muted">
-        ↔ drag to rotate
+      <figcaption className="mt-2 text-center font-serif text-sm italic text-muted">
+        drag to rotate
       </figcaption>
     </figure>
   );

@@ -1,13 +1,11 @@
 import Header from "@/components/Header";
-import { Icon, WorkIllustration, type IconName } from "@/components/illustrations/Icons";
+import { WorkIllustration } from "@/components/illustrations/WorkIllustration";
 import { Fireflies, SunRays } from "@/components/nature/Atmosphere";
 import { Ground, HeroFoliage, SideFoliage } from "@/components/nature/Foliage";
 import { JungleBackdrop, JungleMist, JungleSilhouettes, JungleTrunks, Lianas } from "@/components/nature/Jungle";
 import Reveal from "@/components/Reveal";
 import ScrollDepth from "@/components/ScrollDepth";
-import ScrollLinked from "@/components/ScrollLinked";
 import Section from "@/components/Section";
-import Terminal from "@/components/Terminal";
 import ForestIsland from "@/components/three/ForestIsland";
 import {
   certifications,
@@ -16,52 +14,15 @@ import {
   profile,
   skills,
   works,
-  type CareerItem,
 } from "@/data/profile";
 
-// 経歴の一覧（学歴・アルバイト・資格で同じ見た目を使い回すための小さな部品）
-// スクロールすると、左の縦線（茎）が上から伸びていき、届いたところの丸（節）に色が付きます。
-function CareerList({
-  heading,
-  icon,
-  items,
-}: {
-  heading: string;
-  icon: IconName;
-  items: CareerItem[];
-}) {
-  return (
-    <ScrollLinked>
-      <h3 className="mb-4 flex items-center gap-3 font-bold">
-        <Icon name={icon} className="h-10 w-10" />
-        {heading}
-      </h3>
-      <ol className="relative ml-5 space-y-4 pl-5">
-        {/* 灰色の線（まだ伸びていない部分）と、その上に伸びる緑の茎 */}
-        <span className="absolute inset-y-0 left-0 w-0.5 bg-line" aria-hidden="true" />
-        <span className="stem absolute inset-y-0 left-0 w-0.5 bg-accent" aria-hidden="true" />
-        {items.map((item, i) => (
-          <li
-            key={item.title}
-            className="relative"
-            style={{ "--at": (i + 0.3) / items.length } as React.CSSProperties}
-          >
-            {/* 縦線の上に乗る小さな丸（新芽のイメージ）。茎が届くと色が付く */}
-            <span className="absolute -left-[1.6rem] top-1.5 h-3 w-3 rounded-full border-2 border-background bg-line" aria-hidden="true" />
-            <span className="node absolute -left-[1.6rem] top-1.5 h-3 w-3 rounded-full border-2 border-background bg-accent" aria-hidden="true" />
-            <p className="font-mono text-xs text-muted">{item.period}</p>
-            <p className="mt-1">{item.title}</p>
-            {item.note && <p className="text-sm text-muted">{item.note}</p>}
-          </li>
-        ))}
-      </ol>
-    </ScrollLinked>
-  );
-}
-
-// カード共通の見た目。マウスを乗せると少し浮き上がり、枠が緑になります
-const card =
-  "h-full rounded-xl border border-line bg-background/85 p-5 transition duration-300 hover:-translate-y-1 hover:border-accent hover:shadow-lg hover:shadow-accent/10";
+// 経歴は「学歴・アルバイト・資格」を同じ見た目の表で並べます。
+// 枠で囲む代わりに、行と行の間に細い線（.rule）を引くだけにして、すっきり見せています。
+const careerGroups = [
+  { label: "学歴", items: education },
+  { label: "アルバイト", items: experience },
+  { label: "資格", items: certifications },
+];
 
 // トップページ（URL の「/」）です。
 // src/app/page.tsx というファイルの置き場所が、そのまま URL になります。
@@ -88,168 +49,155 @@ export default function Home() {
           <Fireflies />
           <JungleSilhouettes />
           <div className="jungle-vignette silhouette-fade pointer-events-none absolute inset-0" aria-hidden="true" />
-          {/* hero-fade：スクロールすると中身がゆっくり沈みながら薄くなる（globals.css） */}
-          <div className="hero-fade relative mx-auto w-full max-w-2xl px-6 pb-32 pt-36 sm:pt-44">
-            <Reveal className="text-center">
-              <p className="font-mono text-sm text-accent">Hello, I&apos;m</p>
-              <h1 className="mt-2 text-4xl font-bold sm:text-5xl">
-                {profile.name}
-              </h1>
-              <p className="mt-1 font-mono text-muted">{profile.nameEn}</p>
-              <p className="mt-4 text-sm text-muted sm:text-base">
+          {/* hero-fade：スクロールすると中身がゆっくり沈みながら薄くなる（globals.css）
+              名前は「縦書き」にしています。[writing-mode:vertical-rl] は「文字を上から下へ、行を右から左へ」並べる CSS。
+              日本語ならではの組み方で、よくある「Hello, I'm 〇〇」の横書きテンプレートと差を付けています */}
+          <div className="hero-fade relative mx-auto flex w-full max-w-5xl flex-col items-center px-6 pb-44 pt-32 sm:pt-40">
+            <Reveal className="flex items-start gap-5 sm:gap-8">
+              <p className="pt-3 text-xs tracking-[0.4em] text-muted [writing-mode:vertical-rl] sm:text-sm">
                 {profile.role}
               </p>
-              <p className="mt-6 text-lg sm:text-xl">{profile.catchCopy}</p>
+              <h1 className="font-mincho text-6xl font-medium tracking-[0.18em] [writing-mode:vertical-rl] sm:text-8xl">
+                {profile.name}
+              </h1>
             </Reveal>
-            <Reveal delay={300} className="mt-8">
-              <Terminal
-                lines={[
-                  {
-                    command: "whoami",
-                    output: [`${profile.nameEn} / 情報科学科 3年`],
-                  },
-                  {
-                    command: "cat interests.txt",
-                    output: ["社会シミュレーション", "観葉植物 🌿 / 料理 🍳"],
-                  },
-                  {
-                    command: "npm run grow",
-                    output: ["🌱 → 🌿 → 🌳  ...growing every day"],
-                  },
-                ]}
-              />
+            <Reveal delay={350}>
+              <p className="mt-6 font-serif text-2xl italic tracking-wide text-muted sm:text-3xl">
+                {profile.nameEn}
+              </p>
             </Reveal>
-            <Reveal delay={500} className="text-center">
-              <a
-                href="#works"
-                className="group mt-8 inline-flex items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-medium text-background shadow-lg shadow-accent/20 transition hover:opacity-90"
-              >
-                作品を見る
-                <span className="transition group-hover:translate-x-1">→</span>
-              </a>
-            </Reveal>
+            {profile.catchCopy && (
+              <Reveal delay={500}>
+                <p className="mt-6 text-sm leading-loose tracking-[0.2em]">{profile.catchCopy}</p>
+              </Reveal>
+            )}
           </div>
+          {/* 下へ読み進められることを、細い線が流れ落ちる動きでそっと知らせる */}
+          <a
+            href="#about"
+            className="absolute bottom-6 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-3 font-serif text-sm italic tracking-[0.2em] text-foreground/70 hover:text-foreground"
+          >
+            scroll
+            <span className="relative h-14 w-px overflow-hidden bg-foreground/15" aria-hidden="true">
+              <span className="scroll-cue absolute inset-0 bg-foreground/70" />
+            </span>
+          </a>
         </div>
 
-        <div className="mx-auto w-full max-w-4xl px-4">
-          <Section id="about" number="01" title="About">
-            <div className="grid items-center gap-10 md:grid-cols-[1fr_300px]">
-              <div>
-                <Reveal className="space-y-4 leading-relaxed">
-                  {profile.about.map((text) => (
-                    <p key={text}>{text}</p>
-                  ))}
-                </Reveal>
-                {/* ひと目でわかる自分：イラスト＋短い言葉 */}
-                <ul className="mt-8 grid gap-4 sm:grid-cols-3">
-                  {profile.highlights.map((h, i) => (
-                    <li key={h.text}>
-                      <Reveal delay={i * 120} className="flex items-center gap-3 sm:flex-col sm:text-center">
-                        <Icon name={h.icon} className="h-14 w-14" />
-                        <div>
-                          <p className="font-mono text-xs text-accent">{h.title}</p>
-                          <p className="text-sm">{h.text}</p>
-                        </div>
-                      </Reveal>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+        <div className="mx-auto w-full max-w-5xl px-6">
+          <Section id="about" title="About" label="自己紹介">
+            <div className="grid items-start gap-12 lg:grid-cols-[1fr_15rem]">
+              <Reveal className="max-w-[34em] space-y-6 text-[15px] leading-[2.1]">
+                {profile.about.map((text) => (
+                  <p key={text}>{text}</p>
+                ))}
+              </Reveal>
               {/* 3D の小島：ドラッグで回せる（three.js） */}
               <Reveal delay={200}>
-                <ForestIsland className="mx-auto max-w-[300px]" />
+                <ForestIsland className="mx-auto max-w-[260px]" />
               </Reveal>
             </div>
           </Section>
 
-          <Section id="skills" number="02" title="Skills">
-            <div className="grid gap-6 sm:grid-cols-2">
+          <Section id="skills" title="Skills" label="できること">
+            {/* dl（定義リスト）：「見出し（dt）と説明（dd）」の組を並べるための HTML タグ */}
+            <dl className="border-b border-line">
               {skills.map((group, i) => (
-                <Reveal key={group.category} delay={i * 100}>
-                  <div className={card}>
-                    <h3 className="mb-3 flex items-center gap-3 font-bold">
-                      <Icon name={group.icon} className="h-10 w-10" />
-                      {group.category}
-                    </h3>
-                    <ul className="flex flex-wrap gap-2">
-                      {group.items.map((item, j) => (
-                        <li
-                          key={item.name}
-                          className="chip rounded-md bg-surface px-2 py-1 text-sm"
-                          style={{ "--i": j } as React.CSSProperties}
-                        >
+                <Reveal key={group.category} delay={i * 80} className="relative grid gap-3 py-6 sm:grid-cols-[11rem_1fr]">
+                  <span className="rule absolute inset-x-0 top-0 h-px bg-line" aria-hidden="true" />
+                  <dt className="text-sm text-muted">{group.category}</dt>
+                  <dd>
+                    <ul className="flex flex-wrap gap-x-7 gap-y-2">
+                      {group.items.map((item) => (
+                        <li key={item.name}>
                           {item.name}
-                          {item.note && (
-                            <span className="ml-1 text-xs text-muted">
-                              （{item.note}）
-                            </span>
-                          )}
+                          {item.note && <span className="ml-2 text-xs text-muted">{item.note}</span>}
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </dd>
                 </Reveal>
               ))}
-            </div>
+            </dl>
           </Section>
 
-          <Section id="works" number="03" title="Works">
-            <div className="grid gap-6 sm:grid-cols-2">
+          <Section id="works" title="Works" label="つくったもの">
+            <ol className="space-y-20">
               {works.map((work, i) => (
-                <Reveal key={work.title} delay={i * 100}>
-                  <article className={card}>
-                    {/* 作品のイメージ図（スクリーンショットの代わりのイラスト） */}
-                    <WorkIllustration className="mb-4 rounded-lg" />
-                    <h3 className="font-bold">
-                      {work.url ? (
+                <li key={work.title}>
+                  <Reveal className="group grid items-center gap-8 lg:grid-cols-[1.15fr_1fr]">
+                    {/* 作品のイメージ図（スクリーンショットを用意するまでの仮のイラスト）。マウスを乗せると少しだけ寄る */}
+                    <div className="overflow-hidden rounded-sm">
+                      <WorkIllustration className="transition duration-700 group-hover:scale-[1.03]" />
+                    </div>
+                    <div>
+                      <p className="font-serif text-lg italic text-muted">
+                        No.{String(i + 1).padStart(2, "0")}
+                      </p>
+                      <h3 className="mt-2 font-mincho text-2xl font-medium">{work.title}</h3>
+                      <p className="mt-4 text-sm leading-loose text-muted">{work.description}</p>
+                      {work.tech.length > 0 && (
+                        <p className="mt-5 text-xs leading-relaxed text-muted">{work.tech.join(" ／ ")}</p>
+                      )}
+                      {work.url && (
                         <a
                           href={work.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="hover:text-accent"
+                          className="mt-6 inline-flex items-center gap-2 border-b border-foreground/40 pb-1 text-sm transition hover:border-accent hover:text-accent"
                         >
-                          {work.title} ↗
+                          {work.url.replace("https://", "")}
+                          <span aria-hidden="true">↗</span>
                         </a>
-                      ) : (
-                        work.title
                       )}
-                    </h3>
-                    <p className="mt-2 text-sm leading-relaxed text-muted">
-                      {work.description}
-                    </p>
-                    {work.tech.length > 0 && (
-                      <p className="mt-4 font-mono text-xs text-accent">
-                        {work.tech.join(" / ")}
-                      </p>
-                    )}
-                  </article>
-                </Reveal>
+                    </div>
+                  </Reveal>
+                </li>
+              ))}
+            </ol>
+          </Section>
+
+          <Section id="career" title="Career" label="経歴">
+            <div className="space-y-14">
+              {careerGroups.map((group) => (
+                <div key={group.label}>
+                  <h3 className="mb-3 text-xs tracking-[0.3em] text-muted">{group.label}</h3>
+                  <ol className="border-b border-line">
+                    {group.items.map((item, i) => (
+                      <li key={item.title}>
+                        <Reveal delay={i * 100} className="relative grid gap-1 py-5 sm:grid-cols-[11rem_1fr] sm:gap-3">
+                          <span className="rule absolute inset-x-0 top-0 h-px bg-line" aria-hidden="true" />
+                          {/* tabular-nums：数字の幅をそろえて、年月の縦の位置がずれないようにする */}
+                          <p className="text-sm tabular-nums text-muted">{item.period}</p>
+                          <div>
+                            <p>{item.title}</p>
+                            {item.note && <p className="mt-1 text-sm text-muted">{item.note}</p>}
+                          </div>
+                        </Reveal>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               ))}
             </div>
           </Section>
 
-          <Section id="career" number="04" title="Career">
-            <div className="grid gap-10 sm:grid-cols-2">
-              <Reveal>
-                <CareerList heading="学歴" icon="school" items={education} />
-              </Reveal>
-              <Reveal delay={150} className="space-y-10">
-                <CareerList heading="アルバイト" icon="shop" items={experience} />
-                <CareerList heading="資格" icon="medal" items={certifications} />
-              </Reveal>
-            </div>
-          </Section>
-
-          <Section id="contact" number="05" title="Contact">
+          <Section id="contact" title="Contact" label="連絡先">
             <Reveal>
+              <p className="text-sm text-muted">GitHub</p>
+              {/* マウスを乗せると、文字の下に線が左から引かれる */}
               <a
                 href={profile.links.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`${card} inline-flex items-center gap-3 font-mono`}
+                className="group mt-3 inline-flex items-baseline gap-3 font-serif text-3xl italic tracking-normal sm:text-5xl"
               >
-                <span className="text-accent">GitHub</span>
-                <span>{profile.links.github.replace("https://", "")}</span>
+                <span className="bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-left-bottom bg-no-repeat pb-1 transition-[background-size] duration-500 group-hover:bg-[length:100%_1px]">
+                  {profile.links.github.replace("https://", "")}
+                </span>
+                <span className="text-2xl transition group-hover:-translate-y-1 group-hover:translate-x-1" aria-hidden="true">
+                  ↗
+                </span>
               </a>
             </Reveal>
           </Section>
@@ -257,8 +205,8 @@ export default function Home() {
       </main>
       {/* ページのいちばん下も、植物の茂みで締めくくる */}
       <Ground className="h-20 sm:h-36" />
-      <footer className="bg-[var(--leaf-4)] py-6 text-center font-mono text-xs text-white/80">
-        © {new Date().getFullYear()} {profile.nameEn} · grown with Next.js 🌱
+      <footer className="bg-[var(--leaf-4)] py-6 text-center text-xs tracking-[0.2em] text-white/70">
+        © {new Date().getFullYear()} {profile.nameEn}
       </footer>
     </>
   );

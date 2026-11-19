@@ -4,8 +4,6 @@
 // 書き換えればページ全体に反映されます。
 // =============================================================
 
-import type { IconName } from "@/components/illustrations/Icons";
-
 // 「type」は TypeScript の機能で、データの形（どんな項目を持つか）を決めます。
 // 形を決めておくと、項目の書き忘れや打ち間違いをエディタが教えてくれます。
 export type Work = {
@@ -22,7 +20,6 @@ export type Skill = {
 
 export type SkillGroup = {
   category: string;
-  icon: IconName; // カードに添えるイラスト（src/components/illustrations/Icons.tsx の名前）
   items: Skill[];
 };
 
@@ -37,7 +34,9 @@ export const profile = {
   name: "永山 悟宇",
   nameEn: "Go Nagayama",
   role: "工学院大学 情報学部 情報科学科 3年",
-  catchCopy: "作りながら学ぶ、学んだことを形に残す。",
+  // 最初の画面に小さく添える「ひとこと」。自分の言葉で書きたくなったら、"" の中に書いてください。
+  // 空（""）のままなら、何も表示されません。
+  catchCopy: "",
   about: [
     "工学院大学 情報学部 情報科学科の3年生です。社会シミュレーション研究室（八木研）に所属し、研究では Java を使った人工市場による金融市場のシミュレーションをしています。",
     "授業で Python や C 言語、HTML、CSS、JavaScriptを学び、Unity（C#）にも触れてきました。このサイトは Next.js・React・TypeScript・Tailwind CSS を学びながら作った、最初の Web 制作物です。",
@@ -46,18 +45,11 @@ export const profile = {
   links: {
     github: "https://github.com/muyoggn",
   },
-  // About の下に並べる「ひと目でわかる自分」。イラスト＋短い言葉で、文章を読む前に雰囲気が伝わるように
-  highlights: [
-    { icon: "research", title: "研究", text: "Java で人工市場をつくり、金融市場をシミュレーション" },
-    { icon: "plant", title: "趣味", text: "観葉植物を育てること" },
-    { icon: "cooking", title: "趣味", text: "料理をすること" },
-  ] satisfies { icon: IconName; title: string; text: string }[],
 };
 
 export const skills: SkillGroup[] = [
   {
     category: "Web",
-    icon: "web",
     items: [
       { name: "HTML" },
       { name: "CSS" },
@@ -67,7 +59,6 @@ export const skills: SkillGroup[] = [
   },
   {
     category: "プログラミング言語",
-    icon: "code",
     items: [
       { name: "Java", note: "研究" },
       { name: "Python", note: "授業" },
@@ -77,7 +68,6 @@ export const skills: SkillGroup[] = [
   },
   {
     category: "フレームワーク・ツール",
-    icon: "layers",
     items: [
       { name: "React" },
       { name: "Next.js" },
@@ -88,7 +78,6 @@ export const skills: SkillGroup[] = [
   },
   {
     category: "公開・インフラ",
-    icon: "cloud",
     items: [{ name: "Cloudflare Workers" }],
   },
 ];

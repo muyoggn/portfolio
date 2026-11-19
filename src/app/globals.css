@@ -93,7 +93,9 @@
   --color-terminal-text: var(--terminal-text);
   --color-leaf: var(--leaf);
   --font-sans: var(--font-noto-sans-jp), sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
+  /* font-mincho：名前などの明朝体 / font-serif：英語見出しのセリフ体（layout.tsx で読み込み） */
+  --font-mincho: var(--font-shippori-mincho), serif;
+  --font-serif: var(--font-cormorant), var(--font-shippori-mincho), serif;
 }
 
 html {
@@ -103,9 +105,9 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  /* うっすらとした方眼紙のドット模様（エンジニアのノートっぽさ） */
-  background-image: radial-gradient(var(--line) 1px, transparent 1px);
-  background-size: 24px 24px;
+  /* 文字と文字の間を少しだけ広げると、日本語がゆったり上品に見える */
+  letter-spacing: 0.04em;
+  font-feature-settings: "palt"; /* 句読点やカッコまわりの余白を詰めて、文字の並びを整える */
 }
 
 /* ===== アニメーション ===================================== */
@@ -121,29 +123,6 @@ body {
 .reveal.is-visible {
   opacity: 1;
   transform: none;
-}
-
-/* ターミナルの結果の行：下から少し浮かびながらフェードイン */
-.term-out {
-  opacity: 0;
-  transform: translateY(4px);
-  transition:
-    opacity 0.4s ease,
-    transform 0.4s ease;
-}
-.term-out.is-shown {
-  opacity: 0.8;
-  transform: none;
-}
-
-/* ターミナルの点滅カーソル */
-.cursor {
-  animation: blink 1s steps(1) infinite;
-}
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
 }
 
 /* ===== 森の動き ===== */
@@ -378,28 +357,38 @@ body {
   transform: translate3d(0, calc(var(--sy, 0) * 0.25px), 0);
 }
 
-/* セクション見出しの右の線：見出しが現れると、左から右へスッと伸びる */
-.heading-line {
+/* 細い区切り線：画面に入ると、左から右へスッと引かれる（見出しの下・経歴の各行など） */
+.rule {
   scale: 0 1;
   transform-origin: left;
-  transition: scale 1s cubic-bezier(0.2, 0.8, 0.2, 1) 0.2s;
+  transition: scale 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s;
 }
-.is-visible .heading-line {
+.is-visible .rule,
+.is-visible.rule {
   scale: 1 1;
 }
 
-/* スキルの小さなタグ：カードが出てきたあと、1 つずつ順番にポンと出る（--i が順番） */
-.chip {
-  opacity: 0;
-  translate: 0 6px;
-  transition:
-    opacity 0.4s ease,
-    translate 0.4s ease;
-  transition-delay: calc(0.25s + var(--i, 0) * 0.06s);
+/* ヒーロー下の「Scroll」の線：上から下へ、光がすっと流れ落ちる */
+.scroll-cue {
+  animation: scroll-cue 2.4s cubic-bezier(0.6, 0, 0.3, 1) infinite;
+  transform-origin: top;
 }
-.is-visible .chip {
-  opacity: 1;
-  translate: 0 0;
+@keyframes scroll-cue {
+  0% {
+    scale: 1 0;
+    transform-origin: top;
+  }
+  50% {
+    scale: 1 1;
+    transform-origin: top;
+  }
+  50.1% {
+    transform-origin: bottom;
+  }
+  100% {
+    scale: 1 0;
+    transform-origin: bottom;
+  }
 }
 
 /* イラストの線：画面に入ると、ペンで描くように線が伸びていく。
@@ -414,29 +403,14 @@ body {
   stroke-dashoffset: 0;
 }
 
-/* 経歴の縦線：その経歴を読み進めた分（--p）だけ、上から下へ茎が伸びる */
-.stem {
-  transform: scaleY(var(--p, 0));
-  transform-origin: top;
-}
-/* 茎が届いた節（丸）に色が付く。--at はその行の位置（0〜1） */
-.node {
-  opacity: clamp(0, calc((var(--p, 0) - var(--at, 0)) * 12), 1);
-  scale: clamp(0.4, calc(0.4 + (var(--p, 0) - var(--at, 0)) * 8), 1);
-}
-
 /* 「動きを減らす」設定にしている人には、アニメーションを止めて最初から完成形を見せる */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
-  .term-out {
-    transition: none;
-  }
   .reveal,
   .grow,
-  .sway,
-  .cursor {
+  .sway {
     animation: none;
     transition: none;
     opacity: 1;
@@ -458,8 +432,7 @@ body {
   .hero-fade {
     opacity: 1;
   }
-  .heading-line,
-  .chip,
+  .rule,
   .draw path[pathLength] {
     transition: none;
     scale: 1 1;
@@ -467,11 +440,7 @@ body {
     translate: none;
     stroke-dashoffset: 0;
   }
-  .stem {
-    transform: none;
-  }
-  .node {
-    opacity: 1;
-    scale: 1;
+  .scroll-cue {
+    animation: none;
   }
 }
