@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import LayerStack from "@/components/LayerStack";
 import Reveal from "@/components/Reveal";
+import ScrollLinked from "@/components/ScrollLinked";
 import ScrollDepth from "@/components/ScrollDepth";
 import Section from "@/components/Section";
 import Tilt from "@/components/Tilt";
@@ -12,15 +13,38 @@ import {
   profile,
   skills,
   works,
+  type CareerItem,
 } from "@/data/profile";
 
-// 経歴は「学歴・アルバイト・資格」を同じ見た目の表で並べます。
-// 枠で囲む代わりに、行と行の間に細い線（.rule）を引くだけにして、すっきり見せています。
-const careerGroups = [
-  { label: "学歴", items: education },
-  { label: "アルバイト", items: experience },
-  { label: "資格", items: certifications },
-];
+// 経歴の年表（学歴・アルバイト・資格で同じ見た目を使い回すための小さな部品）。
+// 左に縦線を引き、各行に丸（節）を置きます。スクロールすると朱色の線が上から下へ伸びていき、
+// 線が届いた丸に色が付きます（ScrollLinked が --p に「どこまで読んだか」を入れる → globals.css の .stem / .node）。
+// 上が過去、下が現在の順に並べているので、線の伸びる向きと時間の流れがそろいます。
+function Timeline({ heading, items }: { heading: string; items: CareerItem[] }) {
+  return (
+    <ScrollLinked>
+      <h3 className="mb-6 flex items-center gap-3 font-medium">
+        <span className="h-2 w-2 rounded-[2px] bg-accent" aria-hidden="true" />
+        {heading}
+      </h3>
+      <ol className="relative ml-1.5 space-y-8 pl-8">
+        {/* 灰色の線（まだ読んでいない部分）と、その上に伸びる朱色の線 */}
+        <span className="absolute inset-y-1 left-0 w-px bg-line" aria-hidden="true" />
+        <span className="stem absolute inset-y-1 left-0 w-px bg-accent" aria-hidden="true" />
+        {items.map((item, i) => (
+          <li key={item.title} className="relative" style={{ "--at": (i + 0.3) / items.length } as React.CSSProperties}>
+            {/* 線の上の丸。灰色の丸の上に、線が届くと朱色の丸が重なる */}
+            <span className="absolute -left-8 top-1.5 h-3 w-3 -translate-x-1/2 rounded-full border border-line bg-background" aria-hidden="true" />
+            <span className="node absolute -left-8 top-1.5 h-3 w-3 -translate-x-1/2 rounded-full bg-accent" aria-hidden="true" />
+            <p className="text-sm tabular-nums text-muted">{item.period}</p>
+            <p className="mt-1 font-medium">{item.title}</p>
+            {item.note && <p className="mt-1 text-sm text-muted">{item.note}</p>}
+          </li>
+        ))}
+      </ol>
+    </ScrollLinked>
+  );
+}
 
 // トップページ（URL の「/」）です。
 // src/app/page.tsx というファイルの置き場所が、そのまま URL になります。
@@ -96,7 +120,7 @@ export default function Home() {
                       {group.items.map((item) => (
                         <li key={item.name}>
                           {item.name}
-                          {item.note && <span className="ml-2 text-xs text-muted">{item.note}</span>}
+                          {item.note && <span className="ml-1.5 text-[13px] text-muted">（{item.note}）</span>}
                         </li>
                       ))}
                     </ul>
@@ -122,7 +146,7 @@ export default function Home() {
                       <h3 className="mt-2 text-2xl font-medium">{work.title}</h3>
                       <p className="mt-4 text-sm leading-loose text-muted">{work.description}</p>
                       {work.tech.length > 0 && (
-                        <p className="mt-5 text-xs leading-relaxed text-muted">{work.tech.join(" ／ ")}</p>
+                        <p className="mt-5 text-sm leading-relaxed text-muted">{work.tech.join(" ／ ")}</p>
                       )}
                       {work.url && (
                         <a
@@ -147,27 +171,14 @@ export default function Home() {
           </Section>
 
           <Section id="career" number="04" title="Career" label="経歴">
-            <div className="space-y-14">
-              {careerGroups.map((group) => (
-                <div key={group.label}>
-                  <h3 className="mb-3 text-xs tracking-[0.3em] text-muted">{group.label}</h3>
-                  <ol className="border-b border-line">
-                    {group.items.map((item, i) => (
-                      <li key={item.title}>
-                        <Reveal delay={i * 100} className="relative grid gap-1 py-5 sm:grid-cols-[11rem_1fr] sm:gap-3">
-                          <span className="rule absolute inset-x-0 top-0 h-px bg-line" aria-hidden="true" />
-                          {/* tabular-nums：数字の幅をそろえて、年月の縦の位置がずれないようにする */}
-                          <p className="text-sm tabular-nums text-muted">{item.period}</p>
-                          <div>
-                            <p>{item.title}</p>
-                            {item.note && <p className="mt-1 text-sm text-muted">{item.note}</p>}
-                          </div>
-                        </Reveal>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              ))}
+            <div className="grid gap-14 sm:grid-cols-2 sm:gap-10">
+              <Reveal>
+                <Timeline heading="学歴" items={education} />
+              </Reveal>
+              <Reveal delay={150} className="space-y-14">
+                <Timeline heading="アルバイト" items={experience} />
+                <Timeline heading="資格" items={certifications} />
+              </Reveal>
             </div>
           </Section>
 

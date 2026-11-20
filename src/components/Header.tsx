@@ -1,3 +1,4 @@
+import MobileMenu from "@/components/MobileMenu";
 import ThemeToggle from "@/components/ThemeToggle";
 import { profile } from "@/data/profile";
 
@@ -20,9 +21,9 @@ export default function Header() {
           {profile.nameEn}
         </a>
         <div className="flex items-center gap-3 sm:gap-6">
-          {/* スマホでは文字のメニューを隠す（最初の画面の板がメニューの代わりになる） */}
+          {/* パソコンでは文字のメニューを並べ、スマホでは「Menu」ボタン（MobileMenu.tsx）にまとめる */}
           <nav className="hidden sm:block">
-            <ul className="flex gap-3 text-[11px] text-muted sm:gap-6 sm:text-xs">
+            <ul className="flex gap-6 text-sm text-muted">
               {navItems.map((item) => (
                 <li key={item.href}>
                   <a href={item.href} className="transition hover:text-foreground">
@@ -33,6 +34,7 @@ export default function Header() {
             </ul>
           </nav>
           <ThemeToggle />
+          <MobileMenu items={navItems} />
         </div>
       </div>
       {/* 読んだ量を表す細い線（globals.css の .progress。ScrollDepth.tsx が --sp を書き込む） */}
