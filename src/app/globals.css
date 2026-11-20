@@ -108,6 +108,17 @@ body {
   scale: 1 1;
 }
 
+/* 経歴の縦線：その年表を読み進めた分（--p：0〜1）だけ、上から下へ朱色の線が伸びる */
+.stem {
+  transform: scaleY(var(--p, 0));
+  transform-origin: top;
+}
+/* 線が届いた丸に色が付く。--at はその行の位置（0〜1） */
+.node {
+  opacity: clamp(0, calc((var(--p, 0) - var(--at, 0)) * 12), 1);
+  scale: clamp(0.4, calc(0.4 + (var(--p, 0) - var(--at, 0)) * 8), 1);
+}
+
 /* ヘッダーの下の線：ページを読んだ量（--sp：0〜1）だけ、左から伸びる */
 .progress {
   transform: scaleX(var(--sp, 0));
@@ -243,6 +254,13 @@ body {
   .rule {
     transition: none;
     scale: 1 1;
+  }
+  .stem {
+    transform: none;
+  }
+  .node {
+    opacity: 1;
+    scale: 1;
   }
   .plate-face,
   .scroll-cue {

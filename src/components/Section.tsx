@@ -16,7 +16,7 @@ type SectionProps = {
 
 export default function Section({ id, number, title, label, children }: SectionProps) {
   return (
-    <section id={id} className="scroll-mt-20 py-24 sm:py-32">
+    <section id={id} className="scroll-mt-20 py-20 sm:py-24">
       <div className="grid gap-10 md:grid-cols-[16rem_1fr] md:gap-12">
         <Reveal className="flip">
           {/* md:sticky：そのセクションを読んでいる間は、見出しが左に残る */}
@@ -25,7 +25,7 @@ export default function Section({ id, number, title, label, children }: SectionP
               {title}
               <sup className="ml-1.5 align-super text-xs font-medium tracking-normal text-accent">{number}</sup>
             </h2>
-            <p className="mt-4 text-xs tracking-[0.3em] text-muted">{label}</p>
+            <p className="mt-4 text-sm tracking-[0.2em] text-muted">{label}</p>
           </header>
         </Reveal>
         <div className="min-w-0">{children}</div>
