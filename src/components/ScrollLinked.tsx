@@ -9,21 +9,12 @@ import { useEffect, useRef } from "react";
 //
 // CSS 側で「--p の分だけ線を伸ばす」のように使うと、スクロールにぴったり連動した動きになります。
 // （Reveal は「一度だけ出てくる」動き、こちらは「スクロールを戻すと動きも戻る」動きです）
-//
-// start / end を渡すと、「どこからどこまでで 0→1 にするか」を変えられます（画面の高さに対する割合）。
-// たとえば start=1, end=0 なら「画面の下から入ってきて、上へ出ていくまで」全体で 0→1 になります。
 export default function ScrollLinked({
   children,
   className = "",
-  start: startRatio = 0.85,
-  end: endRatio = 0.6,
-  ariaHidden,
 }: {
   children: React.ReactNode;
   className?: string;
-  start?: number;
-  end?: number;
-  ariaHidden?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -35,8 +26,8 @@ export default function ScrollLinked({
       frame = 0;
       const rect = el.getBoundingClientRect(); // 画面の中での要素の位置
       const vh = window.innerHeight;
-      const start = vh * startRatio;
-      const end = vh * endRatio;
+      const start = vh * 0.85;
+      const end = vh * 0.6;
       const total = rect.height + start - end;
       const p = (start - rect.top) / total;
       el.style.setProperty("--p", String(Math.min(1, Math.max(0, p))));
@@ -52,10 +43,10 @@ export default function ScrollLinked({
       window.removeEventListener("resize", onScroll);
       cancelAnimationFrame(frame);
     };
-  }, [startRatio, endRatio]);
+  }, []);
 
   return (
-    <div ref={ref} className={className} aria-hidden={ariaHidden}>
+    <div ref={ref} className={className}>
       {children}
     </div>
   );

@@ -169,15 +169,22 @@ body {
   /* 斜め上から見下ろす角度。--mx / --my はマウスの位置（-0.5〜0.5）で、少しだけ向きが変わる */
   transform: rotateX(calc(56deg - var(--my, 0) * 12deg)) rotateZ(calc(-40deg + var(--mx, 0) * 16deg));
 }
-/* 板どうしの間隔。スクロールすると広がって、重なりがほどけていく。
+/* 板どうしの間隔。スクロールすると広がって、重なりがほどけながら横へ広がっていく。
    --lift：マウスを乗せた板より上にある板は 1 になり、上へ持ち上がって、選んだ板の表面が見えるようになる */
 .plate {
   --gap: calc(46px + min(var(--sy, 0), 700) * 0.1px);
+  /* --fan：スクロールし始めてから 500px までで 0 → 1。板がトランプを広げるように横へずれていく量 */
+  --fan: calc(min(var(--sy, 0), 500) / 500);
+  /* --spread：板 1 枚あたりのずらし幅。真ん中の板（--z が 2）を中心に、上の板は右へ、下の板は左へ（スマホでは小さめ） */
+  --spread: calc(var(--fan) * (var(--z) - 2) * min(110px, 10vw));
   position: absolute;
   inset: 0;
   display: block;
   transform-style: preserve-3d;
-  transform: translateZ(calc(var(--z) * var(--gap) + var(--lift, 0) * 90px));
+  /* 板の山は斜めに置いてある（.stack の rotateZ(-40deg)）ので、画面の「真横」に動かすには
+     板の向きでいう (cos40°, sin40°) ≒ (0.77, 0.64) の方向にずらす。そのあと translateZ で高さを付ける */
+  transform: translate3d(calc(var(--spread) * 0.77), calc(var(--spread) * 0.64), 0)
+    translateZ(calc(var(--z) * var(--gap) + var(--lift, 0) * 90px));
   transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
   outline: none;
 }
@@ -271,31 +278,6 @@ body {
   opacity: 0.45;
 }
 
-/* ===== 横に流れる帯（SkillBand.tsx） =========================
-   --p（0〜1）は「帯が画面の下から入って上へ抜けるまで」の進み具合。
-   それを横の移動量に置き換えて、1 段目は左へ、2 段目は右へずらします。 */
-.band-row {
-  display: flex;
-  width: max-content;
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 6vw, 5.5rem);
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.04em;
-  white-space: nowrap;
-  transform: translateX(calc(-8% - var(--p, 0) * 14%));
-  will-change: transform;
-}
-.band-row-reverse {
-  transform: translateX(calc(-22% + var(--p, 0) * 14%));
-  color: var(--foreground);
-}
-/* 1 段目は文字の「ふち」だけを描いて、2 段目と強弱をつける */
-.band-outline {
-  color: transparent;
-  -webkit-text-stroke: 1px var(--muted);
-}
-
 /* スキルの各行：下からではなく、左から横にすべり込む */
 .reveal.slide {
   transform: translateX(-40px);
@@ -353,12 +335,9 @@ body {
   .reveal.slide {
     transform: none;
   }
-  /* 横の帯とマス目は、スクロールしても動かさない */
-  .band-row {
-    transform: translateX(-8%);
-  }
-  .band-row-reverse {
-    transform: translateX(-22%);
+  /* 板は横に広げず、マス目もスクロールで動かさない */
+  .plate {
+    --fan: 0;
   }
   .space-plane {
     background-position: center 0;

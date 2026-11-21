@@ -4,7 +4,6 @@ import Reveal from "@/components/Reveal";
 import ScrollLinked from "@/components/ScrollLinked";
 import ScrollDepth from "@/components/ScrollDepth";
 import Section from "@/components/Section";
-import SkillBand from "@/components/SkillBand";
 import SpaceGrid from "@/components/SpaceGrid";
 import Tilt from "@/components/Tilt";
 import WorkPreview from "@/components/WorkPreview";
@@ -111,12 +110,7 @@ export default function Home() {
               ))}
             </Reveal>
           </Section>
-        </div>
 
-        {/* スクロールで横に流れるスキル名の帯。画面の端から端まで使いたいので、幅を制限する枠の外に置く */}
-        <SkillBand />
-
-        <div className="mx-auto w-full max-w-6xl px-6">
           <Section id="skills" number="02" title="Skills" label="できること">
             {/* dl（定義リスト）：「見出し（dt）と説明（dd）」の組を並べるための HTML タグ */}
             <dl className="border-b border-line">
