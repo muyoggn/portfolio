@@ -28,7 +28,7 @@ function Timeline({ heading, items }: { heading: string; items: CareerItem[] }) 
         <span className="h-2 w-2 rounded-[2px] bg-accent" aria-hidden="true" />
         {heading}
       </h3>
-      <ol className="relative ml-1.5 space-y-8 pl-8">
+      <ol className="relative ml-1.5 space-y-10 pl-8">
         {/* 灰色の線（まだ読んでいない部分）と、その上に伸びる朱色の線 */}
         <span className="absolute inset-y-1 left-0 w-px bg-line" aria-hidden="true" />
         <span className="stem absolute inset-y-1 left-0 w-px bg-accent" aria-hidden="true" />
@@ -54,12 +54,15 @@ export default function Home() {
     <>
       <Header />
       <ScrollDepth />
-      {/* 背景に敷く、奥行きのあるマス目（床と天井）。画面に固定され、文字の後ろに見える */}
+      {/* 背景の、上下左右が方眼の壁になったトンネル。画面に固定され、文字の後ろに見える */}
       <SpaceGrid />
       <main id="top" className="flex-1">
-        {/* ヒーロー（最初の画面）：左に名前、右に宙に浮かぶ板の重なり。置く情報はこれだけにして、余白で見せる */}
-        <section className="relative flex min-h-[100svh] items-center overflow-hidden">
-          <div className="mx-auto grid w-full max-w-6xl items-center gap-6 px-6 pb-24 pt-28 lg:grid-cols-[1.1fr_1fr]">
+        {/* ヒーロー（最初の画面）：左に名前、右に宙に浮かぶ板の重なり。置く情報はこれだけにして、余白で見せる。
+            section を画面より 560px 長くして、中身を sticky（その場に貼り付く）にしています。
+            こうすると、スクロールし始めてもしばらく最初の画面がその場に留まり、その間に板が横へ広がる様子が見えます */}
+        <section className="hero-pin relative">
+          <div className="sticky top-0 flex h-[100svh] items-center overflow-hidden">
+          <div className="mx-auto grid w-full max-w-6xl items-center gap-2 px-6 pb-16 pt-24 sm:gap-6 sm:pb-24 sm:pt-28 lg:grid-cols-[1.1fr_1fr]">
             <div className="hero-fade">
               <Reveal>
                 <p className="text-xs tracking-[0.3em] text-muted">PORTFOLIO</p>
@@ -87,7 +90,7 @@ export default function Home() {
               )}
             </div>
             <Reveal delay={300}>
-              <LayerStack className="mt-14 h-[340px] sm:h-[460px] lg:mt-0" />
+              <LayerStack className="mt-16 h-[300px] sm:mt-14 sm:h-[460px] lg:mt-0" />
             </Reveal>
           </div>
           {/* 下へ読み進められることを、細い線が流れ落ちる動きでそっと知らせる */}
@@ -100,11 +103,12 @@ export default function Home() {
             </span>
             SCROLL
           </a>
+          </div>
         </section>
 
         <div className="mx-auto w-full max-w-6xl px-6">
           <Section id="about" number="01" title="About" label="自己紹介">
-            <Reveal className="max-w-[36em] space-y-6 text-[15px] leading-[2.1]">
+            <Reveal className="max-w-[36em] space-y-7 text-[1.0625rem] leading-[2.1]">
               {profile.about.map((text) => (
                 <p key={text}>{text}</p>
               ))}
@@ -116,11 +120,11 @@ export default function Home() {
             <dl className="border-b border-line">
               {skills.map((group, i) => (
                 // slide：下からではなく、左から横にすべり込んでくる（globals.css の .reveal.slide）
-                <Reveal key={group.category} delay={i * 90} className="slide relative grid gap-3 py-6 sm:grid-cols-[11rem_1fr]">
+                <Reveal key={group.category} delay={i * 90} className="slide relative grid gap-3 py-8 sm:grid-cols-[11rem_1fr]">
                   <span className="rule absolute inset-x-0 top-0 h-px bg-line" aria-hidden="true" />
                   <dt className="text-sm text-muted">{group.category}</dt>
                   <dd>
-                    <ul className="flex flex-wrap items-center gap-x-7 gap-y-3">
+                    <ul className="flex flex-wrap items-center gap-x-8 gap-y-3 text-lg">
                       {group.items.map((item) => (
                         <li key={item.name} className="flex items-baseline gap-2">
                           {item.name}
@@ -148,8 +152,8 @@ export default function Home() {
                       <p className="font-display text-sm tabular-nums text-muted">
                         {String(i + 1).padStart(2, "0")}
                       </p>
-                      <h3 className="mt-2 text-2xl font-medium">{work.title}</h3>
-                      <p className="mt-4 text-sm leading-loose text-muted">{work.description}</p>
+                      <h3 className="mt-2 text-3xl font-medium">{work.title}</h3>
+                      <p className="mt-4 leading-loose text-muted">{work.description}</p>
                       {work.tech.length > 0 && (
                         <p className="mt-5 text-sm leading-relaxed text-muted">{work.tech.join(" ／ ")}</p>
                       )}
@@ -195,7 +199,7 @@ export default function Home() {
                 href={profile.links.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group mt-3 inline-flex items-baseline gap-3 font-display text-3xl font-medium tracking-[-0.03em] sm:text-5xl"
+                className="group mt-3 inline-flex items-baseline gap-3 font-display text-3xl font-medium tracking-[-0.03em] sm:text-6xl"
               >
                 <span className="bg-[linear-gradient(var(--accent),var(--accent))] bg-[length:0%_2px] bg-left-bottom bg-no-repeat pb-1 transition-[background-size] duration-500 group-hover:bg-[length:100%_2px]">
                   {profile.links.github.replace("https://", "")}

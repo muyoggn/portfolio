@@ -55,6 +55,19 @@
 
 html {
   scroll-behavior: smooth;
+  /* 文字の基準の大きさ。ブラウザの標準（16px）より少し大きくして、サイト全体を読みやすくする。
+     Tailwind の text-sm や余白（p-4 など）は、この大きさを基準に決まるので、全部いっしょに大きくなる */
+  font-size: 106.25%; /* 17px */
+}
+@media (min-width: 1024px) {
+  html {
+    font-size: 112.5%; /* 広い画面では 18px */
+  }
+}
+
+/* 最初の画面：画面の高さより 560px 長くして、中身を sticky で留めておく（page.tsx） */
+.hero-pin {
+  height: calc(100svh + 560px);
 }
 
 body {
@@ -127,9 +140,10 @@ body {
   transform-origin: left;
 }
 
-/* ヒーロー：下にスクロールすると、文字がゆっくり薄くなる */
+/* ヒーロー：板が広がり終わったあと、文字がゆっくり薄くなる */
 .hero-fade {
-  opacity: max(0, calc(1 - var(--sy, 0) / 600));
+  /* 板が広がっている間（〜420px）はそのまま見せて、そのあと 300px かけて薄くする */
+  opacity: clamp(0, calc(1 - (var(--sy, 0) - 420) / 300), 1);
 }
 
 /* 「Scroll」の線：上から下へ、光がすっと流れ落ちる */
@@ -172,11 +186,12 @@ body {
 /* 板どうしの間隔。スクロールすると広がって、重なりがほどけながら横へ広がっていく。
    --lift：マウスを乗せた板より上にある板は 1 になり、上へ持ち上がって、選んだ板の表面が見えるようになる */
 .plate {
-  --gap: calc(46px + min(var(--sy, 0), 700) * 0.1px);
-  /* --fan：スクロールし始めてから 500px までで 0 → 1。板がトランプを広げるように横へずれていく量 */
-  --fan: calc(min(var(--sy, 0), 500) / 500);
+  --gap: calc(46px + min(var(--sy, 0), 700) * 0.04px);
+  /* --fan：スクロールし始めてから 480px までで 0 → 1。板がトランプを広げるように横へずれていく量。
+     この間は最初の画面が sticky で留まっているので、広がる様子が全部見える */
+  --fan: calc(min(var(--sy, 0), 480) / 480);
   /* --spread：板 1 枚あたりのずらし幅。真ん中の板（--z が 2）を中心に、上の板は右へ、下の板は左へ（スマホでは小さめ） */
-  --spread: calc(var(--fan) * (var(--z) - 2) * min(110px, 10vw));
+  --spread: calc(var(--fan) * (var(--z) - 2) * min(80px, 6.5vw));
   position: absolute;
   inset: 0;
   display: block;
@@ -235,47 +250,70 @@ body {
   transform: translateZ(-60px);
 }
 
-/* ===== 立体空間のマス目（SpaceGrid.tsx） =====================
-   方眼紙の模様を「床」と「天井」に見立てて、奥へ寝かせています。
-   ・.space：画面全体に固定した入れ物。perspective で遠近感を付ける
-   ・.space-plane：方眼紙。linear-gradient で 1px の線を縦横にくり返し引いている
-   ・rotateX で寝かせると、遠くのマス目ほど小さく見える
-   ・mask で、奥（地平線の近く）ほど線を薄くして、空間に溶け込ませる
+/* ===== 方眼のトンネル（SpaceGrid.tsx） =========================
+   上下左右の 4 枚の壁に方眼紙の模様を貼り、奥へ続く四角いトンネルを作っています。
+   ・.space：画面全体に固定した入れ物。perspective（遠近法）で奥ほど小さく見せる
+   ・.tunnel-wall：方眼紙。linear-gradient で 1px の線を縦横にくり返し引いている
+   ・4 枚とも、画面のふち（手前）から奥（--depth の深さ）まで伸びるように 90° 回して置く
+     手前のふちが画面のふちにぴったり重なるので、画面全体がトンネルの入り口になる
+   ・mask で、奥へ行くほど線を薄くして、トンネルの先が明るく抜けて見えるようにする
+   ・スクロールすると模様が手前へ流れてきて（--sy）、トンネルの中を前へ進んでいるように見える
    ============================================================= */
 .space {
+  --depth: 2600px; /* トンネルの奥行き */
+  --cell: 80px; /* マス目 1 つの大きさ */
+  --run: calc(var(--sy, 0) * 0.6px); /* スクロールした分だけ、模様を手前へ流す量 */
   position: fixed;
   inset: 0;
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
-  perspective: 520px;
+  perspective: 600px;
   perspective-origin: 50% 50%;
 }
-.space-plane {
+.tunnel-wall {
   position: absolute;
-  left: -60%;
-  width: 220%;
-  height: 90vh;
   background-image:
     linear-gradient(var(--grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-  background-size: 72px 72px;
-  background-position: center calc(var(--sy, 0) * 0.35px);
+  background-size: var(--cell) var(--cell);
 }
-/* 床：画面の中ほどを地平線にして、そこから手前へ広がる */
-.space-floor {
-  top: 50%;
-  transform-origin: top center;
-  transform: rotateX(80deg);
-  mask-image: linear-gradient(to bottom, transparent 0%, #000 75%);
+/* 床と天井：横幅は画面いっぱい、縦の長さが奥行き。X 軸で 90° 倒して水平にする */
+.tunnel-floor,
+.tunnel-ceiling {
+  left: 0;
+  width: 100vw;
+  height: var(--depth);
+  top: calc(50% - var(--depth) / 2);
 }
-/* 天井：床を上下反対にしたもの。床より少し控えめにする */
-.space-ceiling {
-  bottom: 50%;
-  transform-origin: bottom center;
-  transform: rotateX(-80deg);
-  mask-image: linear-gradient(to top, transparent 0%, #000 75%);
-  opacity: 0.45;
+.tunnel-floor {
+  /* 画面の下のふちまで下げてから、奥へ半分ずらす。上側が奥、下側が手前 */
+  transform: translate3d(0, 50vh, calc(var(--depth) / -2)) rotateX(90deg);
+  mask-image: linear-gradient(to bottom, transparent, #000 70%);
+  background-position: 0 var(--run); /* 下（手前）へ流れる */
+}
+.tunnel-ceiling {
+  transform: translate3d(0, -50vh, calc(var(--depth) / -2)) rotateX(-90deg);
+  mask-image: linear-gradient(to top, transparent, #000 70%);
+  background-position: 0 calc(var(--run) * -1); /* 上（手前）へ流れる */
+}
+/* 左右の壁：縦は画面いっぱい、横の長さが奥行き。Y 軸で 90° 回して立てる */
+.tunnel-left,
+.tunnel-right {
+  top: 0;
+  height: 100vh;
+  width: var(--depth);
+  left: calc(50% - var(--depth) / 2);
+}
+.tunnel-left {
+  transform: translate3d(-50vw, 0, calc(var(--depth) / -2)) rotateY(90deg);
+  mask-image: linear-gradient(to right, #000 30%, transparent);
+  background-position: calc(var(--run) * -1) 0; /* 左（手前）へ流れる */
+}
+.tunnel-right {
+  transform: translate3d(50vw, 0, calc(var(--depth) / -2)) rotateY(-90deg);
+  mask-image: linear-gradient(to left, #000 30%, transparent);
+  background-position: var(--run) 0; /* 右（手前）へ流れる */
 }
 
 /* セクションの見出し：セクションが画面に入り始めたときは左の外側に隠れていて、
@@ -350,7 +388,11 @@ body {
   .plate {
     --fan: 0;
   }
-  .space-plane {
-    background-position: center 0;
+  .space {
+    --run: 0px;
+  }
+  /* 板が広がらないので、最初の画面を留めておく必要もない */
+  .hero-pin {
+    height: auto;
   }
 }
