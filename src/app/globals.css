@@ -278,6 +278,14 @@ body {
   opacity: 0.45;
 }
 
+/* セクションの見出し：セクションが画面に入り始めたときは左の外側に隠れていて、
+   --p が 0 → 0.33 になるまでのあいだに、左のふちから横にすべり出て定位置に止まる（Section.tsx）。
+   右の中身とは重ならないよう、左から出す */
+.title-slide {
+  display: inline-block;
+  translate: calc((1 - min(var(--p, 1) * 3, 1)) * -105%) 0;
+}
+
 /* スキルの各行：下からではなく、左から横にすべり込む */
 .reveal.slide {
   transform: translateX(-40px);
@@ -334,6 +342,9 @@ body {
   }
   .reveal.slide {
     transform: none;
+  }
+  .title-slide {
+    translate: none;
   }
   /* 板は横に広げず、マス目もスクロールで動かさない */
   .plate {
