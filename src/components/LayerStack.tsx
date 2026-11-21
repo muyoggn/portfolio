@@ -52,7 +52,7 @@ export default function LayerStack({ className = "" }: { className?: string }) {
     <div ref={ref} className={`stack-scene flex items-center justify-center ${className}`}>
       <nav
         aria-label="セクション"
-        className="stack h-52 w-52 sm:h-64 sm:w-64"
+        className="stack h-44 w-44 sm:h-64 sm:w-64"
         onPointerLeave={() => setActive(-1)}
         onBlur={() => setActive(-1)}
       >
