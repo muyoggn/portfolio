@@ -331,60 +331,36 @@ body {
 }
 
 /* ===== 作品のカルーセル（WorkCarousel.tsx） =====================
-   カードはすべて同じ場所（舞台の真ん中）に重ねて置き、JS が計算した transform で
+   カードはすべて同じ場所（舞台の真ん中）に重ねて置き、スクロール量から JS が計算した transform で
    横・奥・斜めにずらして、円柱のまわりに並んでいるように見せています。
+   スクロールにぴったりついてくるよう、transition（あとから追いかける動き）は付けていません。
    ============================================================= */
 .carousel-stage {
+  /* カードの幅。画面の横幅の 44% か、画面の高さに収まる大きさの、小さいほう（スマホは 80%） */
+  --w: min(44%, calc((100svh - 500px) * 4 / 3));
   perspective: 1400px;
   touch-action: pan-y; /* 縦のスクロールはブラウザに任せ、横の動きだけカルーセルで受け取る */
   /* 左右のはしに行ったカードは、ふちに向かって薄く消えていく */
   mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
 }
+@media (max-width: 639px) {
+  .carousel-stage {
+    --w: min(80%, calc((100svh - 500px) * 4 / 3));
+  }
+}
 .carousel-sizer {
-  width: 44%;
+  width: var(--w);
   margin-inline: auto;
 }
 .carousel-card {
   position: absolute;
   top: 0;
-  left: 28%;
-  width: 44%;
+  left: calc(50% - var(--w) / 2);
+  width: var(--w);
   border-radius: 1rem;
   /* カードの絵は少し透けているので、下に地の色を敷いて、後ろのカードが透けて見えないようにする */
   background: var(--background);
-  transition:
-    transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
-    opacity 0.8s ease;
-}
-/* スワイプ中は指にぴったりついてくるよう、なめらかに追いかける動きを止める */
-.carousel-stage.is-dragging .carousel-card,
-.carousel-card.no-anim {
-  transition: none;
-}
-.carousel-stage.is-dragging {
-  cursor: grabbing;
-}
-@media (max-width: 639px) {
-  .carousel-sizer,
-  .carousel-card {
-    width: 72%;
-  }
-  .carousel-card {
-    left: 14%;
-  }
-}
-/* 自動で次へ回るまでの時間を表す線：左から右へ伸びる */
-.carousel-progress {
-  transform-origin: left;
-  animation: carousel-progress linear forwards;
-}
-@keyframes carousel-progress {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(1);
-  }
+  will-change: transform; /* スクロールのたびに動くことを、ブラウザに先に伝えておく */
 }
 /* 説明文の入れ替わり */
 .carousel-detail {
@@ -443,13 +419,8 @@ body {
   .hero-pin {
     height: auto;
   }
-  /* カルーセルは自動で回さず（線は伸びきった状態で止める）、切り替えもパッと変える */
-  .carousel-card,
+  /* カルーセルの説明文も、パッと切り替える */
   .carousel-detail {
-    transition: none;
-    animation: none;
-  }
-  .carousel-progress {
     animation: none;
   }
 }
