@@ -19,6 +19,7 @@
   --plate-edge: rgba(23, 24, 27, 0.1); /* 板のふち */
   --plate-side: #d9d7d1; /* 板の厚み（側面） */
   --plate-shadow: rgba(23, 24, 27, 0.22); /* 床に落ちる影 */
+  --grid: rgba(23, 24, 27, 0.075); /* 背景のマス目の線（SpaceGrid.tsx） */
 }
 
 /* ダークモード：夜は黒地に、板がうっすら光る。<html data-theme="dark"> のときに使われます。
@@ -34,6 +35,7 @@
   --plate-edge: rgba(255, 255, 255, 0.14);
   --plate-side: #1f2126;
   --plate-shadow: rgba(0, 0, 0, 0.6);
+  --grid: rgba(255, 255, 255, 0.06);
 }
 
 /* Tailwind の「dark:〜」クラスも、OS の設定ではなく data-theme に合わせて効くようにする */
@@ -167,15 +169,22 @@ body {
   /* 斜め上から見下ろす角度。--mx / --my はマウスの位置（-0.5〜0.5）で、少しだけ向きが変わる */
   transform: rotateX(calc(56deg - var(--my, 0) * 12deg)) rotateZ(calc(-40deg + var(--mx, 0) * 16deg));
 }
-/* 板どうしの間隔。スクロールすると広がって、重なりがほどけていく。
+/* 板どうしの間隔。スクロールすると広がって、重なりがほどけながら横へ広がっていく。
    --lift：マウスを乗せた板より上にある板は 1 になり、上へ持ち上がって、選んだ板の表面が見えるようになる */
 .plate {
   --gap: calc(46px + min(var(--sy, 0), 700) * 0.1px);
+  /* --fan：スクロールし始めてから 500px までで 0 → 1。板がトランプを広げるように横へずれていく量 */
+  --fan: calc(min(var(--sy, 0), 500) / 500);
+  /* --spread：板 1 枚あたりのずらし幅。真ん中の板（--z が 2）を中心に、上の板は右へ、下の板は左へ（スマホでは小さめ） */
+  --spread: calc(var(--fan) * (var(--z) - 2) * min(110px, 10vw));
   position: absolute;
   inset: 0;
   display: block;
   transform-style: preserve-3d;
-  transform: translateZ(calc(var(--z) * var(--gap) + var(--lift, 0) * 90px));
+  /* 板の山は斜めに置いてある（.stack の rotateZ(-40deg)）ので、画面の「真横」に動かすには
+     板の向きでいう (cos40°, sin40°) ≒ (0.77, 0.64) の方向にずらす。そのあと translateZ で高さを付ける */
+  transform: translate3d(calc(var(--spread) * 0.77), calc(var(--spread) * 0.64), 0)
+    translateZ(calc(var(--z) * var(--gap) + var(--lift, 0) * 90px));
   transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
   outline: none;
 }
@@ -226,6 +235,65 @@ body {
   transform: translateZ(-60px);
 }
 
+/* ===== 立体空間のマス目（SpaceGrid.tsx） =====================
+   方眼紙の模様を「床」と「天井」に見立てて、奥へ寝かせています。
+   ・.space：画面全体に固定した入れ物。perspective で遠近感を付ける
+   ・.space-plane：方眼紙。linear-gradient で 1px の線を縦横にくり返し引いている
+   ・rotateX で寝かせると、遠くのマス目ほど小さく見える
+   ・mask で、奥（地平線の近く）ほど線を薄くして、空間に溶け込ませる
+   ============================================================= */
+.space {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: 520px;
+  perspective-origin: 50% 50%;
+}
+.space-plane {
+  position: absolute;
+  left: -60%;
+  width: 220%;
+  height: 90vh;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 72px 72px;
+  background-position: center calc(var(--sy, 0) * 0.35px);
+}
+/* 床：画面の中ほどを地平線にして、そこから手前へ広がる */
+.space-floor {
+  top: 50%;
+  transform-origin: top center;
+  transform: rotateX(80deg);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 75%);
+}
+/* 天井：床を上下反対にしたもの。床より少し控えめにする */
+.space-ceiling {
+  bottom: 50%;
+  transform-origin: bottom center;
+  transform: rotateX(-80deg);
+  mask-image: linear-gradient(to top, transparent 0%, #000 75%);
+  opacity: 0.45;
+}
+
+/* セクションの見出し：セクションが画面に入り始めたときは左の外側に隠れていて、
+   --p が 0 → 0.33 になるまでのあいだに、左のふちから横にすべり出て定位置に止まる（Section.tsx）。
+   右の中身とは重ならないよう、左から出す */
+.title-slide {
+  display: inline-block;
+  translate: calc((1 - min(var(--p, 1) * 3, 1)) * -105%) 0;
+}
+
+/* スキルの各行：下からではなく、左から横にすべり込む */
+.reveal.slide {
+  transform: translateX(-40px);
+}
+.reveal.slide.is-visible {
+  transform: none;
+}
+
 /* ===== マウスで傾くカード（Tilt.tsx） ===================== */
 .tilt {
   perspective: 1200px;
@@ -271,5 +339,18 @@ body {
   }
   .tilt-inner {
     transform: none;
+  }
+  .reveal.slide {
+    transform: none;
+  }
+  .title-slide {
+    translate: none;
+  }
+  /* 板は横に広げず、マス目もスクロールで動かさない */
+  .plate {
+    --fan: 0;
+  }
+  .space-plane {
+    background-position: center 0;
   }
 }
