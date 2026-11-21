@@ -144,13 +144,18 @@ export default function Home() {
             <WorkCarousel
               works={works}
               heading={
-                <header>
-                  <h2 className="font-display text-5xl font-semibold leading-none tracking-[-0.04em] sm:text-6xl">
-                    Works
-                    <sup className="ml-1.5 align-super text-xs font-medium tracking-normal text-accent">03</sup>
-                  </h2>
-                  <p className="mt-4 text-sm tracking-[0.2em] text-muted">つくったもの</p>
-                </header>
+                // ほかの見出しと同じ動き：画面に入ると起き上がり（Reveal の flip）、左のふちから横にすべり出る（title-slide）
+                <ScrollLinked start={1} end={0.2}>
+                  <Reveal className="flip">
+                    <header>
+                      <h2 className="title-slide font-display text-5xl font-semibold leading-none tracking-[-0.04em] sm:text-6xl">
+                        Works
+                        <sup className="ml-1.5 align-super text-xs font-medium tracking-normal text-accent">03</sup>
+                      </h2>
+                      <p className="mt-4 text-sm tracking-[0.2em] text-muted">つくったもの</p>
+                    </header>
+                  </Reveal>
+                </ScrollLinked>
               }
             />
           </section>
