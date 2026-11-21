@@ -33,11 +33,10 @@ function ringOffset(i: number, pos: number, n: number) {
   return d;
 }
 
-// 作品 1 つ分のスクロールのうち、はじめと終わりの 2 割ずつは「正面で止まって見える」ようにする。
-// 0〜1 の t を、なめらかな S 字（smoothstep）でつなぐ
+// 作品 1 つ分のスクロールのうち、正面に来たあたりでは「ゆっくり」、間では「速め」に回す。
+// 完全には止めないので、カクッとせず、ずっとぬるっと動き続ける（サイン波で速さに強弱を付けている）
 function hold(t: number) {
-  const x = Math.min(1, Math.max(0, (t - 0.2) / 0.6));
-  return x * x * (3 - 2 * x);
+  return t - (Math.sin(2 * Math.PI * t) / (2 * Math.PI)) * 0.85;
 }
 
 // 「動きを減らす」設定がオンかどうか。設定が変わったら教えてもらう（useSyncExternalStore）
@@ -61,7 +60,6 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
   const trackRef = useRef<HTMLDivElement>(null); // 縦に長い外側の箱（この高さの分だけスクロールして回す）
   const stageRef = useRef<HTMLDivElement>(null);
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const barRef = useRef<HTMLSpanElement>(null);
   const staticPos = useRef(0); // 画面を留めないときの位置
   const [flipped, setFlipped] = useState<number | null>(null); // 裏返している作品の番号
   const justDragged = useRef(false);
@@ -77,13 +75,11 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
       const o = ringOffset(i, pos, n);
       const a = Math.abs(o);
       const hidden = a > 2.4;
-      el.style.transform = `translateX(${o * 86}%) translateZ(${a * -260}px) rotateY(${Math.max(-2, Math.min(2, o)) * 30 - lean}deg) rotateZ(${lean * 0.25}deg) scale(${squeeze})`;
+      el.style.transform = `translate3d(0, 0, 0) translateX(${o * 80}%) translateZ(${a * -260}px) rotateY(${Math.max(-2, Math.min(2, o)) * 30 - lean}deg) rotateZ(${lean * 0.25}deg) scale(${squeeze})`;
       el.style.opacity = String(hidden ? 0 : a <= 1 ? 1 - a * 0.3 : 0.7 - (a - 1) * 0.5);
       el.style.zIndex = String(10 - Math.round(a * 2));
       el.style.visibility = hidden ? "hidden" : "";
     });
-    // 下の朱色の線：どこまで回ったか（0〜1）
-    if (barRef.current) barRef.current.style.transform = `scaleX(${n > 1 ? Math.min(pos, n - 1) / (n - 1) : 1})`;
     const near = ((Math.round(pos) % n) + n) % n;
     if (activeRef.current !== near) {
       activeRef.current = near;
@@ -127,20 +123,28 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
       place(staticPos.current);
       return;
     }
-    // スクロールした位置（target）に、今の位置（cur）が毎コマ 12% ずつ近づいていく。
-    // こうすると、スクロールを止めても少しだけ「すーっ」と動き続ける、なめらかな動きになる。
+    // スクロールした位置（target）に、今の位置（cur）が少しずつ近づいていく。
+    // こうすると、スクロールを止めてもしばらく「ぬるーっ」と動き続ける、なめらかな動きになる。
+    // 近づく割合は「1 コマ（1/60 秒）あたり 8%」。画面の書き換えが 60 回/秒でも 120 回/秒でも
+    // 同じ速さに見えるよう、前のコマからの経過時間（dt）で割合を調整している。
     // 近づききったら、毎コマの計算は止めておく（何もしていないときは動かさない）
     let frame = 0;
     let running = false;
+    let last = 0;
     let cur = posFromScroll();
-    const tick = () => {
+    const tick = (now: number) => {
+      const dt = last ? Math.min(64, now - last) : 16.7;
+      last = now;
       const target = posFromScroll();
       const prev = cur;
-      cur += (target - cur) * 0.12;
-      if (Math.abs(target - cur) < 0.0005) cur = target;
-      place(cur, cur - prev);
+      cur += (target - cur) * (1 - Math.pow(1 - 0.08, dt / 16.7));
+      if (Math.abs(target - cur) < 0.0003) cur = target;
+      place(cur, (cur - prev) * (16.7 / dt));
       if (cur !== target) frame = requestAnimationFrame(tick);
-      else running = false;
+      else {
+        running = false;
+        last = 0;
+      }
     };
     const update = () => {
       if (running) return;
@@ -299,54 +303,10 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
           ))}
         </div>
 
-        {/* ---- 操作：細い線（どこまで回ったか。押すとその作品へ）と、左右の矢印 ---- */}
-        <div className="mt-6 flex items-center gap-6 sm:mt-8">
-          <div className="relative flex flex-1 gap-2">
-            {works.map((w, i) => (
-              <button
-                key={w.title}
-                type="button"
-                onClick={() => go(i)}
-                aria-label={`${i + 1} 番目の作品：${w.title}`}
-                aria-current={i === active}
-                className="group relative h-6 flex-1"
-              >
-                <span className="absolute inset-x-0 top-1/2 h-px bg-line transition group-hover:bg-foreground/40" />
-              </button>
-            ))}
-            {/* 回った分だけ左から伸びる朱色の線（transform だけで伸ばす） */}
-            <span
-              ref={barRef}
-              className="pointer-events-none absolute inset-x-0 top-1/2 h-px origin-left bg-accent"
-              style={{ transform: "scaleX(0)" }}
-              aria-hidden="true"
-            />
-          </div>
-          <p className="font-display text-sm tabular-nums text-muted">
-            <span className="text-foreground">{String(active + 1).padStart(2, "0")}</span> / {String(n).padStart(2, "0")}
-          </p>
-          <div className="flex gap-2">
-            {[
-              { label: "前の作品", by: -1, icon: "←" },
-              { label: "次の作品", by: 1, icon: "→" },
-            ].map((b) => (
-              <button
-                key={b.label}
-                type="button"
-                onClick={() => go(active + b.by)}
-                aria-label={b.label}
-                className="grid h-10 w-10 place-items-center rounded-full border border-line text-sm transition hover:border-accent hover:text-accent"
-              >
-                {b.icon}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* ---- 正面の作品の説明。作品が切り替わるたびに、下からふわっと入れ替わる ---- */}
-        <div key={active} className="carousel-detail mt-6 min-h-[10rem] sm:mt-8" aria-live="polite">
+        <div key={active} className="carousel-detail mt-6 min-h-[8rem] sm:mt-8" aria-live="polite">
           <p className="font-display text-sm tabular-nums text-muted">
-            {String(active + 1).padStart(2, "0")}
+            {String(active + 1).padStart(2, "0")} / {String(n).padStart(2, "0")}
             {work.sample && <span className="ml-3 font-sans">サンプル</span>}
           </p>
           <h3 className="mt-2 text-xl font-medium sm:text-2xl">{work.title}</h3>

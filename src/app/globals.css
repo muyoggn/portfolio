@@ -336,8 +336,8 @@ body {
    スクロールにぴったりついてくるよう、transition（あとから追いかける動き）は付けていません。
    ============================================================= */
 .carousel-stage {
-  /* カードの幅。画面の横幅の 44% か、画面の高さに収まる大きさの、小さいほう（スマホは 80%） */
-  --w: min(44%, calc((100svh - 500px) * 4 / 3));
+  /* カードの幅。画面の横幅の 58% か、画面の高さに収まる大きさの、小さいほう（スマホは 88%） */
+  --w: min(58%, calc((100svh - 330px) * 4 / 3));
   perspective: 1400px;
   touch-action: pan-y; /* 縦のスクロールはブラウザに任せ、横の動きだけカルーセルで受け取る */
   /* 左右のはしに行ったカードは、ふちに向かって薄く消えていく */
@@ -345,7 +345,7 @@ body {
 }
 @media (max-width: 639px) {
   .carousel-stage {
-    --w: min(80%, calc((100svh - 500px) * 4 / 3));
+    --w: min(88%, calc((100svh - 330px) * 4 / 3));
   }
 }
 .carousel-sizer {
@@ -359,6 +359,21 @@ body {
   width: var(--w);
   transform-style: preserve-3d; /* 中で裏返す動きを、立体のまま見せる */
   will-change: transform; /* スクロールのたびに動くことを、ブラウザに先に伝えておく */
+  /* 止まっているときも、宙に浮いているように、ゆっくり上下にただよう。
+     JS が書き換える transform とは別の translate を動かすので、ぶつからない */
+  animation: card-float 6s ease-in-out infinite;
+}
+.carousel-card:nth-of-type(odd) {
+  animation-delay: -3s;
+}
+@keyframes card-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -8px;
+  }
 }
 /* カードを裏返す：表と裏の 2 面を重ね、裏は最初から 180° 回しておく。
    backface-visibility: hidden で「向こうを向いている面」は見えなくなるので、
@@ -445,5 +460,8 @@ body {
   }
   .card-flip {
     transition: none;
+  }
+  .carousel-card {
+    animation: none;
   }
 }
