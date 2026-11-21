@@ -55,14 +55,6 @@
 
 html {
   scroll-behavior: smooth;
-  /* 文字の基準の大きさ。ブラウザの標準（16px）より少し大きくして、サイト全体を読みやすくする。
-     Tailwind の text-sm や余白（p-4 など）は、この大きさを基準に決まるので、全部いっしょに大きくなる */
-  font-size: 106.25%; /* 17px */
-}
-@media (min-width: 1024px) {
-  html {
-    font-size: 112.5%; /* 広い画面では 18px */
-  }
 }
 
 /* 最初の画面：画面の高さより 560px 長くして、中身を sticky で留めておく（page.tsx） */
@@ -257,12 +249,15 @@ body {
    ・4 枚とも、画面のふち（手前）から奥（--depth の深さ）まで伸びるように 90° 回して置く
      手前のふちが画面のふちにぴったり重なるので、画面全体がトンネルの入り口になる
    ・mask で、奥へ行くほど線を薄くして、トンネルの先が明るく抜けて見えるようにする
-   ・スクロールすると模様が手前へ流れてきて（--sy）、トンネルの中を前へ進んでいるように見える
+   ・スクロールすると壁ごと手前へ少しずつ動いて、トンネルの中を前へ進んでいるように見える。
+     --run（0〜80px）は ScrollDepth.tsx が「スクロール量 ÷ マス目 1 つ分の余り」として入れている。
+     マス目 1 つ分（80px）動くと 0 に戻るが、模様がちょうど 1 マスずれて重なるので、つなぎ目は見えない
+   ・模様そのもの（background-position）を動かすと、大きな壁を毎回描き直すことになり、画面がカクついた。
+     transform（位置や角度）だけを動かすと、描き直さずに済むのでなめらかに動く
    ============================================================= */
 .space {
   --depth: 2600px; /* トンネルの奥行き */
   --cell: 80px; /* マス目 1 つの大きさ */
-  --run: calc(var(--sy, 0) * 0.6px); /* スクロールした分だけ、模様を手前へ流す量 */
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -277,6 +272,7 @@ body {
     linear-gradient(var(--grid) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: var(--cell) var(--cell);
+  will-change: transform; /* 「この要素は transform が変わる」とブラウザに先に伝えて、なめらかに動かしてもらう */
 }
 /* 床と天井：横幅は画面いっぱい、縦の長さが奥行き。X 軸で 90° 倒して水平にする */
 .tunnel-floor,
@@ -288,14 +284,12 @@ body {
 }
 .tunnel-floor {
   /* 画面の下のふちまで下げてから、奥へ半分ずらす。上側が奥、下側が手前 */
-  transform: translate3d(0, 50vh, calc(var(--depth) / -2)) rotateX(90deg);
+  transform: translate3d(0, 50vh, calc(var(--depth) / -2 + var(--run, 0px))) rotateX(90deg);
   mask-image: linear-gradient(to bottom, transparent, #000 70%);
-  background-position: 0 var(--run); /* 下（手前）へ流れる */
 }
 .tunnel-ceiling {
-  transform: translate3d(0, -50vh, calc(var(--depth) / -2)) rotateX(-90deg);
+  transform: translate3d(0, -50vh, calc(var(--depth) / -2 + var(--run, 0px))) rotateX(-90deg);
   mask-image: linear-gradient(to top, transparent, #000 70%);
-  background-position: 0 calc(var(--run) * -1); /* 上（手前）へ流れる */
 }
 /* 左右の壁：縦は画面いっぱい、横の長さが奥行き。Y 軸で 90° 回して立てる */
 .tunnel-left,
@@ -306,14 +300,12 @@ body {
   left: calc(50% - var(--depth) / 2);
 }
 .tunnel-left {
-  transform: translate3d(-50vw, 0, calc(var(--depth) / -2)) rotateY(90deg);
+  transform: translate3d(-50vw, 0, calc(var(--depth) / -2 + var(--run, 0px))) rotateY(90deg);
   mask-image: linear-gradient(to right, #000 30%, transparent);
-  background-position: calc(var(--run) * -1) 0; /* 左（手前）へ流れる */
 }
 .tunnel-right {
-  transform: translate3d(50vw, 0, calc(var(--depth) / -2)) rotateY(-90deg);
+  transform: translate3d(50vw, 0, calc(var(--depth) / -2 + var(--run, 0px))) rotateY(-90deg);
   mask-image: linear-gradient(to left, #000 30%, transparent);
-  background-position: var(--run) 0; /* 右（手前）へ流れる */
 }
 
 /* セクションの見出し：セクションが画面に入り始めたときは左の外側に隠れていて、
@@ -388,7 +380,7 @@ body {
   .plate {
     --fan: 0;
   }
-  .space {
+  .tunnel-wall {
     --run: 0px;
   }
   /* 板が広がらないので、最初の画面を留めておく必要もない */
