@@ -137,12 +137,11 @@ body {
 .hero-fade {
   opacity: clamp(0, calc(1 - var(--sy, 0) / 520), 1);
 }
-/* ヒーローの板：スクロールすると、右の方へ寄りながら小さく・薄くなっていく。
-   ちょうど消えるころに、右はしに小さな板の目次（SideNav.tsx）がすべり込んでくるので、板が端へ移ったように見える */
+/* ヒーローの板：スクロールし始めるとすぐに消える。
+   同じ場所にぴったり重ねて置いた目次の板（SideNav.tsx）と入れ替わり、そちらが右はしへ飛んでいく。
+   --fly（0〜1）は SideNav.tsx が書き込む */
 .hero-stack-out {
-  --o: min(var(--sy, 0), 380);
-  opacity: clamp(0, calc(1 - var(--o) / 380), 1);
-  transform: translate3d(calc(var(--o) * 0.3px), calc(var(--o) * 0.15px), 0) scale(calc(1 - var(--o) / 1100));
+  opacity: calc(1 - var(--fly, 0));
 }
 
 /* 「Scroll」の線：上から下へ、光がすっと流れ落ちる */
@@ -245,20 +244,9 @@ body {
 /* ===== 右はしの目次（SideNav.tsx） ============================
    最初の画面の板を小さくして縦に並べたもの。板は同じ角度（rotateX 56° / rotateZ -40°）で寝かせてある。
    ============================================================= */
-.side-item {
-  /* 最初は画面の右の外に隠しておき、.is-shown が付くと 1 枚ずつ（--i の順に少し遅れて）すべり込む */
-  transform: translateX(140%);
-  opacity: 0;
-  transition:
-    transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--i) * 60ms),
-    opacity 0.5s ease calc(var(--i) * 60ms);
-}
-.side-nav:not(.is-shown) {
+/* 板が飛んでいる途中は押せないようにする（着いたら .is-arrived が付く） */
+.side-nav:not(.is-arrived) {
   pointer-events: none;
-}
-.side-nav.is-shown .side-item {
-  transform: none;
-  opacity: 1;
 }
 .side-label {
   color: var(--muted);
@@ -272,15 +260,25 @@ body {
   display: block;
   width: 48px;
   height: 34px;
-  perspective: 400px;
+}
+/* 飛んでくる部分。JS が transform（位置と大きさ）を書き込む。
+   perspective は、最初の画面の板（幅 256px に 1600px）と同じ比率にして、大きくしたときに同じ形に見えるようにしている */
+.mini-fly {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  perspective: 190px;
+  opacity: 0;
+  will-change: transform;
 }
 .mini-plate {
   position: relative;
   display: block;
-  margin: 2px auto 0;
   width: 30px;
   height: 30px;
-  border-radius: 6px;
+  border-radius: 7%; /* 最初の画面の板（256px に 18px）と同じ割合 */
   background: var(--plate);
   border: 1px solid var(--plate-edge);
   transform-style: preserve-3d;
@@ -297,7 +295,7 @@ body {
   inset: 0;
   border-radius: inherit;
   background: var(--plate-side);
-  transform: translateZ(-3px);
+  transform: translateZ(-1px);
 }
 /* マウスを乗せた板は少し持ち上がる */
 .side-item:hover .mini-plate {
@@ -317,15 +315,13 @@ body {
   .mini-scene {
     width: 26px;
     height: 20px;
-    perspective: 240px;
+  }
+  .mini-fly {
+    perspective: 145px; /* スマホの最初の画面の板（幅 176px に 1600px）と同じ比率 */
   }
   .mini-plate {
     width: 16px;
     height: 16px;
-    border-radius: 3px;
-  }
-  .mini-plate::after {
-    transform: translateZ(-2px);
   }
   /* 名前は出さない（本文と重なって読みにくくなるため）。今いる場所は板の色だけで示す */
   .side-label {
@@ -535,11 +531,7 @@ body {
   .tunnel-wall {
     --run: 0px;
   }
-  /* 板は動かさずにその場で薄くするだけ。目次の板も、すべり込まずにパッと出す */
-  .hero-stack-out {
-    transform: none;
-  }
-  .side-item,
+  /* 目次の板は飛ばさずに、パッと出す */
   .mini-plate,
   .side-label {
     transition: none;
