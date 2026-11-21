@@ -357,10 +357,30 @@ body {
   top: 0;
   left: calc(50% - var(--w) / 2);
   width: var(--w);
+  transform-style: preserve-3d; /* 中で裏返す動きを、立体のまま見せる */
+  will-change: transform; /* スクロールのたびに動くことを、ブラウザに先に伝えておく */
+}
+/* カードを裏返す：表と裏の 2 面を重ね、裏は最初から 180° 回しておく。
+   backface-visibility: hidden で「向こうを向いている面」は見えなくなるので、
+   箱ごと 180° 回すと、表が消えて裏が見える */
+.card-flip {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.card-flip.is-flipped {
+  transform: rotateY(180deg);
+}
+.card-face {
   border-radius: 1rem;
   /* カードの絵は少し透けているので、下に地の色を敷いて、後ろのカードが透けて見えないようにする */
   background: var(--background);
-  will-change: transform; /* スクロールのたびに動くことを、ブラウザに先に伝えておく */
+  backface-visibility: hidden;
+}
+.card-back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
 }
 /* 説明文の入れ替わり */
 .carousel-detail {
@@ -422,5 +442,8 @@ body {
   /* カルーセルの説明文も、パッと切り替える */
   .carousel-detail {
     animation: none;
+  }
+  .card-flip {
+    transition: none;
   }
 }

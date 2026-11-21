@@ -15,6 +15,10 @@ import WorkArt from "@/components/WorkArt";
 //   トラックパッドの横スクロールや、スマホで横にスワイプしても同じように回ります。
 // ・「いま何枚目まで回ったか」を小数（pos）で持ち、各カードが正面から何枚ずれているかを計算して、
 //   その分だけ横・奥・斜めにずらします。
+// ・スクロールの位置にそのまま合わせず、毎コマ少しずつ追いかける（なめらかに遅れてついてくる）ようにして、
+//   速くスクロールしたときは、カードが進む向きに少し傾きます（スクロールの「速さ」を使う）。
+// ・正面のカードを押すと、くるっと裏返って、裏に作品の説明が書いてあります。
+//   （友人のサイトの「スクロールで回る・カードを押すと裏返る」という仕組みを参考にしました。見た目はこのサイトの板のままです）
 // ・スクロールのたびに React で描き直すと重いので、カードの transform だけを直接書き換えています。
 //   動かすのは transform と opacity だけなので、ブラウザは描き直さずに済み、なめらかに動きます。
 // ・「動きを減らす」設定の人には、画面を留めず、矢印ボタンでパッと切り替える形にします。
@@ -59,15 +63,21 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
   const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
   const barRef = useRef<HTMLSpanElement>(null);
   const staticPos = useRef(0); // 画面を留めないときの位置
+  const [flipped, setFlipped] = useState<number | null>(null); // 裏返している作品の番号
+  const justDragged = useRef(false);
+  const activeRef = useRef(0); // active と同じ値（スクロール中に、変わったかどうかを素早く調べる用）
 
   // カードを pos（小数）の位置に並べる。スクロールのたびに呼ばれる
-  const place = (pos: number) => {
+  // vel：1 コマでどれだけ回ったか（スクロールの速さ）。速いほどカードが傾く
+  const place = (pos: number, vel = 0) => {
+    const lean = Math.max(-8, Math.min(8, vel * 90)); // 傾き（度）
+    const squeeze = 1 - Math.min(0.06, Math.abs(vel) * 0.8); // 速いときは少しだけ縮める
     cardRefs.current.forEach((el, i) => {
       if (!el) return;
       const o = ringOffset(i, pos, n);
       const a = Math.abs(o);
       const hidden = a > 2.4;
-      el.style.transform = `translateX(${o * 86}%) translateZ(${a * -260}px) rotateY(${Math.max(-2, Math.min(2, o)) * 30}deg)`;
+      el.style.transform = `translateX(${o * 86}%) translateZ(${a * -260}px) rotateY(${Math.max(-2, Math.min(2, o)) * 30 - lean}deg) rotateZ(${lean * 0.25}deg) scale(${squeeze})`;
       el.style.opacity = String(hidden ? 0 : a <= 1 ? 1 - a * 0.3 : 0.7 - (a - 1) * 0.5);
       el.style.zIndex = String(10 - Math.round(a * 2));
       el.style.visibility = hidden ? "hidden" : "";
@@ -75,7 +85,11 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
     // 下の朱色の線：どこまで回ったか（0〜1）
     if (barRef.current) barRef.current.style.transform = `scaleX(${n > 1 ? Math.min(pos, n - 1) / (n - 1) : 1})`;
     const near = ((Math.round(pos) % n) + n) % n;
-    setActive((prev) => (prev === near ? prev : near));
+    if (activeRef.current !== near) {
+      activeRef.current = near;
+      setActive(near);
+      setFlipped(null); // 正面の作品が変わったら、裏返していたカードは表に戻す
+    }
   };
 
   // スクロール量 → 何枚目まで回ったか
@@ -113,13 +127,27 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
       place(staticPos.current);
       return;
     }
-    // スクロールのたびに、次の画面の描画に合わせて（requestAnimationFrame）1 回だけ並べ直す
+    // スクロールした位置（target）に、今の位置（cur）が毎コマ 12% ずつ近づいていく。
+    // こうすると、スクロールを止めても少しだけ「すーっ」と動き続ける、なめらかな動きになる。
+    // 近づききったら、毎コマの計算は止めておく（何もしていないときは動かさない）
     let frame = 0;
-    const update = () => {
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => place(posFromScroll()));
+    let running = false;
+    let cur = posFromScroll();
+    const tick = () => {
+      const target = posFromScroll();
+      const prev = cur;
+      cur += (target - cur) * 0.12;
+      if (Math.abs(target - cur) < 0.0005) cur = target;
+      place(cur, cur - prev);
+      if (cur !== target) frame = requestAnimationFrame(tick);
+      else running = false;
     };
-    update();
+    const update = () => {
+      if (running) return;
+      running = true;
+      frame = requestAnimationFrame(tick);
+    };
+    place(cur);
     window.addEventListener("scroll", update, { passive: true });
     window.addEventListener("resize", update);
     return () => {
@@ -187,6 +215,9 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
     const d = drag.current;
     drag.current = null;
     if (!d?.moved) return;
+    // 指を離した直後に届く「クリック」で、カードが裏返らないようにする
+    justDragged.current = true;
+    setTimeout(() => (justDragged.current = false), 0);
     if (pinned) {
       // 指を離したら、いちばん近い作品にぴたっと合わせる
       go(Math.round(posFromScroll()));
@@ -212,10 +243,14 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
         <div
           ref={stageRef}
           tabIndex={0}
-          aria-label="← → キーで作品を切り替え"
+          aria-label="← → キーで作品を切り替え、Enter で裏返す"
           onKeyDown={(e) => {
             if (e.key === "ArrowRight") go(active + 1);
             if (e.key === "ArrowLeft") go(active - 1);
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setFlipped((f) => (f === active ? null : active));
+            }
           }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -235,10 +270,31 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
               aria-roledescription="slide"
               aria-label={`${i + 1} / ${n}：${w.title}`}
               aria-hidden={i !== active}
-              onClick={() => i !== active && go(i)}
-              className={`carousel-card ${i === active ? "" : "cursor-pointer"}`}
+              onClick={() => {
+                if (justDragged.current) return;
+                // 正面のカードは裏返す。となりのカードは、そのカードを正面へ
+                if (i === active) setFlipped((f) => (f === i ? null : i));
+                else go(i);
+              }}
+              className="carousel-card cursor-pointer"
             >
-              <WorkArt work={w} />
+              {/* 表と裏の 2 面。裏返すときは、この箱ごと Y 軸で 180° 回す */}
+              <div className={`card-flip ${flipped === i ? "is-flipped" : ""}`}>
+                <div className="card-face">
+                  <WorkArt work={w} />
+                </div>
+                <div className="card-face card-back flex flex-col justify-between rounded-2xl border border-line p-[7%]">
+                  <div>
+                    <p className="font-display text-xs tabular-nums text-muted">
+                      {String(i + 1).padStart(2, "0")}
+                      {w.sample && <span className="ml-3 font-sans">サンプル</span>}
+                    </p>
+                    <p className="mt-2 font-medium sm:text-lg">{w.title}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-muted sm:mt-3 sm:text-sm sm:leading-loose">{w.description}</p>
+                  </div>
+                  {w.tech.length > 0 && <p className="text-xs leading-relaxed text-muted sm:text-sm">{w.tech.join(" ／ ")}</p>}
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -288,14 +344,15 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
         </div>
 
         {/* ---- 正面の作品の説明。作品が切り替わるたびに、下からふわっと入れ替わる ---- */}
-        <div key={active} className="carousel-detail mt-6 min-h-[15rem] sm:mt-8" aria-live="polite">
+        <div key={active} className="carousel-detail mt-6 min-h-[10rem] sm:mt-8" aria-live="polite">
           <p className="font-display text-sm tabular-nums text-muted">
             {String(active + 1).padStart(2, "0")}
             {work.sample && <span className="ml-3 font-sans">サンプル</span>}
           </p>
           <h3 className="mt-2 text-xl font-medium sm:text-2xl">{work.title}</h3>
-          <p className="mt-3 max-w-[36em] text-sm leading-loose text-muted">{work.description}</p>
-          {work.tech.length > 0 && <p className="mt-3 text-sm leading-relaxed text-muted">{work.tech.join(" ／ ")}</p>}
+          <p className="mt-3 text-sm text-muted">
+            {flipped === active ? "もう一度押すと、表に戻ります" : "カードを押すと、裏返して説明が読めます"}
+          </p>
           {work.url && (
             <a href={work.url} target="_blank" rel="noopener noreferrer" className="group mt-4 inline-flex items-center gap-2 text-sm">
               <span className="border-b border-foreground/30 pb-1 transition group-hover:border-accent group-hover:text-accent">
