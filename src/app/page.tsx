@@ -122,14 +122,10 @@ export default function Home() {
                   <dd>
                     <ul className="flex flex-wrap items-center gap-x-7 gap-y-3">
                       {group.items.map((item) => (
-                        <li key={item.name} className="flex items-center gap-2">
+                        <li key={item.name} className="flex items-baseline gap-2">
                           {item.name}
-                          {/* どこで使ったか（研究・授業など）は、カッコではなく小さな札（バッジ）にして添える */}
-                          {item.note && (
-                            <span className="rounded-full border border-line px-2 py-px text-[11px] leading-[1.6] tracking-[0.08em] text-muted">
-                              {item.note}
-                            </span>
-                          )}
+                          {/* どこで使ったか（研究・授業など）は、カッコも枠も付けず、小さめの灰色の字でそっと添える */}
+                          {item.note && <span className="text-xs text-muted">{item.note}</span>}
                         </li>
                       ))}
                     </ul>
