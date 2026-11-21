@@ -19,6 +19,7 @@
   --plate-edge: rgba(23, 24, 27, 0.1); /* 板のふち */
   --plate-side: #d9d7d1; /* 板の厚み（側面） */
   --plate-shadow: rgba(23, 24, 27, 0.22); /* 床に落ちる影 */
+  --grid: rgba(23, 24, 27, 0.075); /* 背景のマス目の線（SpaceGrid.tsx） */
 }
 
 /* ダークモード：夜は黒地に、板がうっすら光る。<html data-theme="dark"> のときに使われます。
@@ -34,6 +35,7 @@
   --plate-edge: rgba(255, 255, 255, 0.14);
   --plate-side: #1f2126;
   --plate-shadow: rgba(0, 0, 0, 0.6);
+  --grid: rgba(255, 255, 255, 0.06);
 }
 
 /* Tailwind の「dark:〜」クラスも、OS の設定ではなく data-theme に合わせて効くようにする */
@@ -226,6 +228,82 @@ body {
   transform: translateZ(-60px);
 }
 
+/* ===== 立体空間のマス目（SpaceGrid.tsx） =====================
+   方眼紙の模様を「床」と「天井」に見立てて、奥へ寝かせています。
+   ・.space：画面全体に固定した入れ物。perspective で遠近感を付ける
+   ・.space-plane：方眼紙。linear-gradient で 1px の線を縦横にくり返し引いている
+   ・rotateX で寝かせると、遠くのマス目ほど小さく見える
+   ・mask で、奥（地平線の近く）ほど線を薄くして、空間に溶け込ませる
+   ============================================================= */
+.space {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: 520px;
+  perspective-origin: 50% 50%;
+}
+.space-plane {
+  position: absolute;
+  left: -60%;
+  width: 220%;
+  height: 90vh;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 72px 72px;
+  background-position: center calc(var(--sy, 0) * 0.35px);
+}
+/* 床：画面の中ほどを地平線にして、そこから手前へ広がる */
+.space-floor {
+  top: 50%;
+  transform-origin: top center;
+  transform: rotateX(80deg);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 75%);
+}
+/* 天井：床を上下反対にしたもの。床より少し控えめにする */
+.space-ceiling {
+  bottom: 50%;
+  transform-origin: bottom center;
+  transform: rotateX(-80deg);
+  mask-image: linear-gradient(to top, transparent 0%, #000 75%);
+  opacity: 0.45;
+}
+
+/* ===== 横に流れる帯（SkillBand.tsx） =========================
+   --p（0〜1）は「帯が画面の下から入って上へ抜けるまで」の進み具合。
+   それを横の移動量に置き換えて、1 段目は左へ、2 段目は右へずらします。 */
+.band-row {
+  display: flex;
+  width: max-content;
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 5.5rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+  transform: translateX(calc(-8% - var(--p, 0) * 14%));
+  will-change: transform;
+}
+.band-row-reverse {
+  transform: translateX(calc(-22% + var(--p, 0) * 14%));
+  color: var(--foreground);
+}
+/* 1 段目は文字の「ふち」だけを描いて、2 段目と強弱をつける */
+.band-outline {
+  color: transparent;
+  -webkit-text-stroke: 1px var(--muted);
+}
+
+/* スキルの各行：下からではなく、左から横にすべり込む */
+.reveal.slide {
+  transform: translateX(-40px);
+}
+.reveal.slide.is-visible {
+  transform: none;
+}
+
 /* ===== マウスで傾くカード（Tilt.tsx） ===================== */
 .tilt {
   perspective: 1200px;
@@ -271,5 +349,18 @@ body {
   }
   .tilt-inner {
     transform: none;
+  }
+  .reveal.slide {
+    transform: none;
+  }
+  /* 横の帯とマス目は、スクロールしても動かさない */
+  .band-row {
+    transform: translateX(-8%);
+  }
+  .band-row-reverse {
+    transform: translateX(-22%);
+  }
+  .space-plane {
+    background-position: center 0;
   }
 }

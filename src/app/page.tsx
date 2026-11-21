@@ -4,6 +4,8 @@ import Reveal from "@/components/Reveal";
 import ScrollLinked from "@/components/ScrollLinked";
 import ScrollDepth from "@/components/ScrollDepth";
 import Section from "@/components/Section";
+import SkillBand from "@/components/SkillBand";
+import SpaceGrid from "@/components/SpaceGrid";
 import Tilt from "@/components/Tilt";
 import WorkPreview from "@/components/WorkPreview";
 import {
@@ -53,6 +55,8 @@ export default function Home() {
     <>
       <Header />
       <ScrollDepth />
+      {/* 背景に敷く、奥行きのあるマス目（床と天井）。画面に固定され、文字の後ろに見える */}
+      <SpaceGrid />
       <main id="top" className="flex-1">
         {/* ヒーロー（最初の画面）：左に名前、右に宙に浮かぶ板の重なり。置く情報はこれだけにして、余白で見せる */}
         <section className="relative flex min-h-[100svh] items-center overflow-hidden">
@@ -107,20 +111,31 @@ export default function Home() {
               ))}
             </Reveal>
           </Section>
+        </div>
 
+        {/* スクロールで横に流れるスキル名の帯。画面の端から端まで使いたいので、幅を制限する枠の外に置く */}
+        <SkillBand />
+
+        <div className="mx-auto w-full max-w-6xl px-6">
           <Section id="skills" number="02" title="Skills" label="できること">
             {/* dl（定義リスト）：「見出し（dt）と説明（dd）」の組を並べるための HTML タグ */}
             <dl className="border-b border-line">
               {skills.map((group, i) => (
-                <Reveal key={group.category} delay={i * 80} className="relative grid gap-3 py-6 sm:grid-cols-[11rem_1fr]">
+                // slide：下からではなく、左から横にすべり込んでくる（globals.css の .reveal.slide）
+                <Reveal key={group.category} delay={i * 90} className="slide relative grid gap-3 py-6 sm:grid-cols-[11rem_1fr]">
                   <span className="rule absolute inset-x-0 top-0 h-px bg-line" aria-hidden="true" />
                   <dt className="text-sm text-muted">{group.category}</dt>
                   <dd>
-                    <ul className="flex flex-wrap gap-x-7 gap-y-2">
+                    <ul className="flex flex-wrap items-center gap-x-7 gap-y-3">
                       {group.items.map((item) => (
-                        <li key={item.name}>
+                        <li key={item.name} className="flex items-center gap-2">
                           {item.name}
-                          {item.note && <span className="ml-1.5 text-[13px] text-muted">（{item.note}）</span>}
+                          {/* どこで使ったか（研究・授業など）は、カッコではなく小さな札（バッジ）にして添える */}
+                          {item.note && (
+                            <span className="rounded-full border border-line px-2 py-px text-[11px] leading-[1.6] tracking-[0.08em] text-muted">
+                              {item.note}
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>
