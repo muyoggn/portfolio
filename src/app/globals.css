@@ -324,18 +324,77 @@ body {
   transform: none;
 }
 
-/* ===== マウスで傾くカード（Tilt.tsx） ===================== */
-.tilt {
-  perspective: 1200px;
-}
-.tilt-inner {
-  transform-style: preserve-3d;
-  transform: rotateX(calc(var(--ty, 0) * -10deg)) rotateY(calc(var(--tx, 0) * 14deg));
-  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
+/* ===== 奥行きのある部品（WorkPreview.tsx） ===================== */
 /* 中の部品に depth を付けると、傾けたときに手前ほど大きくずれて立体的に見える */
 .depth {
   transform: translateZ(calc(var(--d, 0) * 1px));
+}
+
+/* ===== 作品のカルーセル（WorkCarousel.tsx） =====================
+   カードはすべて同じ場所（舞台の真ん中）に重ねて置き、JS が計算した transform で
+   横・奥・斜めにずらして、円柱のまわりに並んでいるように見せています。
+   ============================================================= */
+.carousel-stage {
+  perspective: 1400px;
+  touch-action: pan-y; /* 縦のスクロールはブラウザに任せ、横の動きだけカルーセルで受け取る */
+  /* 左右のはしに行ったカードは、ふちに向かって薄く消えていく */
+  mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+}
+.carousel-sizer {
+  width: 44%;
+  margin-inline: auto;
+}
+.carousel-card {
+  position: absolute;
+  top: 0;
+  left: 28%;
+  width: 44%;
+  border-radius: 1rem;
+  /* カードの絵は少し透けているので、下に地の色を敷いて、後ろのカードが透けて見えないようにする */
+  background: var(--background);
+  transition:
+    transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.8s ease;
+}
+/* スワイプ中は指にぴったりついてくるよう、なめらかに追いかける動きを止める */
+.carousel-stage.is-dragging .carousel-card,
+.carousel-card.no-anim {
+  transition: none;
+}
+.carousel-stage.is-dragging {
+  cursor: grabbing;
+}
+@media (max-width: 639px) {
+  .carousel-sizer,
+  .carousel-card {
+    width: 72%;
+  }
+  .carousel-card {
+    left: 14%;
+  }
+}
+/* 自動で次へ回るまでの時間を表す線：左から右へ伸びる */
+.carousel-progress {
+  transform-origin: left;
+  animation: carousel-progress linear forwards;
+}
+@keyframes carousel-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+/* 説明文の入れ替わり */
+.carousel-detail {
+  animation: carousel-detail 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes carousel-detail {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
 }
 
 /* 「動きを減らす」設定にしている人には、アニメーションを止めて最初から完成形を見せる */
@@ -367,9 +426,6 @@ body {
   .plate {
     --gap: 46px;
   }
-  .tilt-inner {
-    transform: none;
-  }
   .reveal.slide {
     transform: none;
   }
@@ -386,5 +442,14 @@ body {
   /* 板が広がらないので、最初の画面を留めておく必要もない */
   .hero-pin {
     height: auto;
+  }
+  /* カルーセルは自動で回さず（線は伸びきった状態で止める）、切り替えもパッと変える */
+  .carousel-card,
+  .carousel-detail {
+    transition: none;
+    animation: none;
+  }
+  .carousel-progress {
+    animation: none;
   }
 }

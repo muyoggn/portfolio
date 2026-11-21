@@ -15,16 +15,18 @@ type SectionProps = {
   title: string; // 英語の見出し（About など）
   label: string; // 日本語の小さな添え書き（自己紹介 など）
   children: React.ReactNode;
+  // true にすると、見出しを上に置いて、中身を横幅いっぱいに使う（Works のカルーセル用）
+  wide?: boolean;
 };
 
-export default function Section({ id, number, title, label, children }: SectionProps) {
+export default function Section({ id, number, title, label, children, wide = false }: SectionProps) {
   return (
     // overflow-x-clip：左にずらした見出しを、セクションのふちで切り取る（そこから出てくるように見える）
     <section id={id} className="scroll-mt-20 overflow-x-clip py-20 sm:py-24">
-      <ScrollLinked start={1} end={0.2} className="grid gap-10 md:grid-cols-[16rem_1fr] md:gap-12">
+      <ScrollLinked start={1} end={0.2} className={`grid gap-10 md:gap-12 ${wide ? "" : "md:grid-cols-[16rem_1fr]"}`}>
         <Reveal className="flip">
           {/* md:sticky：そのセクションを読んでいる間は、見出しが左に残る */}
-          <header className="md:sticky md:top-28">
+          <header className={wide ? "" : "md:sticky md:top-28"}>
             <h2 className="title-slide font-display text-5xl font-semibold leading-none tracking-[-0.04em] sm:text-6xl">
               {title}
               <sup className="ml-1.5 align-super text-xs font-medium tracking-normal text-accent">{number}</sup>

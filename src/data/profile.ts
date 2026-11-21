@@ -11,6 +11,12 @@ export type Work = {
   description: string;
   tech: string[];
   url?: string; // 「?」が付いた項目は省略してもよい、という意味
+  // カルーセルに出すプレビュー画像。public/ に画像を置いて "/works/xxx.png" のように書く
+  image?: string;
+  // 画像がまだないときの「仮の絵」の種類（WorkCarousel.tsx の WorkArt）
+  art?: "site" | "game" | "chart" | "app" | "notes";
+  // true にすると「サンプル」と小さく表示される（仮の作品の目印）
+  sample?: boolean;
 };
 
 export type Skill = {
@@ -82,15 +88,56 @@ export const skills: SkillGroup[] = [
   },
 ];
 
-export const works: Work[] = [
+// 作品の一覧。Works のカルーセルに、この順番で並びます（最後まで行くと最初に戻ります）。
+// 作品を足すときは、{ ... } のかたまりを 1 つコピーして書き換えてください。
+const realWorks: Work[] = [
   {
     title: "ポートフォリオサイト",
     description:
       "このサイトです。Next.js で作成し、Cloudflare Workers で公開しています。",
     tech: ["Next.js", "React", "TypeScript", "Tailwind CSS", "Cloudflare"],
     url: "https://github.com/muyoggn/portfolio",
+    art: "site",
   },
 ];
+
+// ---- ここから下は「仮のサンプル」です ----------------------------------
+// 作品が 1 つだけだとカルーセルの動きが分からないので、見本として置いています。
+// 本物の作品が増えたら、このかたまりごと消すか、下の works の行を
+// 「export const works: Work[] = realWorks;」に書き換えてください。
+const sampleWorks: Work[] = [
+  {
+    title: "2D アクションゲーム",
+    description: "（サンプル）Unity で作った、横スクロールの小さなアクションゲーム。",
+    tech: ["Unity", "C#"],
+    art: "game",
+    sample: true,
+  },
+  {
+    title: "人工市場シミュレーションの可視化",
+    description: "（サンプル）研究で動かしているシミュレーションの値動きを、グラフで見られるようにしたもの。",
+    tech: ["Java", "Python"],
+    art: "chart",
+    sample: true,
+  },
+  {
+    title: "レシピ帳アプリ",
+    description: "（サンプル）作った料理と分量を記録して、あとから材料で探せる Web アプリ。",
+    tech: ["Next.js", "TypeScript"],
+    art: "app",
+    sample: true,
+  },
+  {
+    title: "観葉植物の水やり記録",
+    description: "（サンプル）鉢ごとに水やりの日をメモして、次に水をあげる日を教えてくれるツール。",
+    tech: ["TypeScript", "HTML / CSS"],
+    art: "notes",
+    sample: true,
+  },
+];
+// ---- 仮のサンプルここまで ---------------------------------------------
+
+export const works: Work[] = [...realWorks, ...sampleWorks];
 
 // 学歴（上が古く、下が新しい。画面では縦線が上から下へ「過去 → 現在」と伸びていきます）
 // 経歴を足すときは、どの一覧も「古いものを上、新しいものを下」に書いてください
