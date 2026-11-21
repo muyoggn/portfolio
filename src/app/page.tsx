@@ -139,10 +139,8 @@ export default function Home() {
           </Section>
 
           <Section id="works" number="03" title="Works" label="つくったもの" wide>
-            {/* 作品を横にぐるぐる回して見るカルーセル。作品は profile.ts の works に足していく */}
-            <Reveal>
-              <WorkCarousel works={works} />
-            </Reveal>
+            {/* 作品を横にぐるぐる回して見るカルーセル。ここに来ると画面が留まり、スクロールで回る。作品は profile.ts の works に足していく */}
+            <WorkCarousel works={works} />
           </Section>
 
           <Section id="career" number="04" title="Career" label="経歴">

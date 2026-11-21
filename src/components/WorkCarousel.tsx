@@ -1,7 +1,7 @@
 "use client";
-// ↑ ボタンやスワイプに反応して動くので、ブラウザ側で動く部品にしています。
+// ↑ スクロールやボタンに反応して動くので、ブラウザ側で動く部品にしています。
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Work } from "@/data/profile";
 import WorkArt from "@/components/WorkArt";
 
@@ -10,214 +10,303 @@ import WorkArt from "@/components/WorkArt";
 // しくみ：
 // ・作品のカードを、円柱のまわりに並べたように置いています。真ん中のカードが正面、
 //   となりのカードは少し奥に下がって、斜めにこちらを向きます（3D の rotateY と translateZ）。
-// ・「正面にいるのは何番目か（active）」だけを覚えておき、各カードが正面から何枚ずれているか（offset）を
-//   計算して、ずれた分だけ横・奥・斜めに動かします。最後のカードの次は最初のカードに戻ります（ぐるぐる）。
-// ・動かすのは transform と opacity だけ。ブラウザが絵を描き直さずに済むので、なめらかに動きます。
-// ・下の細い線が左から伸びきると、次の作品へ自動で回ります。マウスを乗せている間・画面の外にあるとき・
-//   「動きを減らす」設定の人には、自動では回りません。
-// ・矢印ボタン、キーボードの ← →、スマホでは指で横にスワイプしても回せます。
+// ・スクロールで回ります。Works の場所に来ると画面が留まり（sticky）、そのまま下へスクロールすると
+//   カードが横に回っていきます。最後の作品まで回りきると、留まりが外れて次のセクションへ進みます。
+//   トラックパッドの横スクロールや、スマホで横にスワイプしても同じように回ります。
+// ・「いま何枚目まで回ったか」を小数（pos）で持ち、各カードが正面から何枚ずれているかを計算して、
+//   その分だけ横・奥・斜めにずらします。
+// ・スクロールのたびに React で描き直すと重いので、カードの transform だけを直接書き換えています。
+//   動かすのは transform と opacity だけなので、ブラウザは描き直さずに済み、なめらかに動きます。
+// ・「動きを減らす」設定の人には、画面を留めず、矢印ボタンでパッと切り替える形にします。
 
-const AUTO_MS = 6000; // 自動で次へ回るまでの時間（ミリ秒）
+const STEP_PX = 520; // 作品 1 つ分回すのに必要なスクロール量（px）
 
-// 「正面から何枚ずれているか」を、ぐるっと回った近いほうで数える。
+// 「正面から何枚ずれているか」を、ぐるっと回った近いほうで数える（小数でも OK）。
 // 例：作品が 5 つで正面が 0 番のとき、4 番は「+4 枚」ではなく「-1 枚（左となり）」
-function ringOffset(i: number, active: number, n: number) {
-  let d = (((i - active) % n) + n) % n;
+function ringOffset(i: number, pos: number, n: number) {
+  let d = (((i - pos) % n) + n) % n;
   if (d > n / 2) d -= n;
   return d;
 }
 
+// 作品 1 つ分のスクロールのうち、はじめと終わりの 2 割ずつは「正面で止まって見える」ようにする。
+// 0〜1 の t を、なめらかな S 字（smoothstep）でつなぐ
+function hold(t: number) {
+  const x = Math.min(1, Math.max(0, (t - 0.2) / 0.6));
+  return x * x * (3 - 2 * x);
+}
+
+// 「動きを減らす」設定がオンかどうか。設定が変わったら教えてもらう（useSyncExternalStore）
+const reduceQuery = "(prefers-reduced-motion: reduce)";
+function useReducedMotion() {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(reduceQuery);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(reduceQuery).matches,
+    () => false, // サーバーで HTML を作るときは「オフ」として作る
+  );
+}
+
 export default function WorkCarousel({ works }: { works: Work[] }) {
   const n = works.length;
-  // active：いま正面の作品の番号。prev：ひとつ前に正面だった番号（回り込みの判定に使う）
-  const [{ active, prev }, setPos] = useState({ active: 0, prev: 0 });
-  const [drag, setDrag] = useState(0); // スワイプ中、指が動いた量（カード何枚分か。小数）
-  const [dragging, setDragging] = useState(false);
-  const [hovered, setHovered] = useState(false);
-  const [inView, setInView] = useState(false);
+  const [active, setActive] = useState(0); // 正面に一番近い作品（説明文の切り替えに使う）
+  const pinned = !useReducedMotion(); // false：「動きを減らす」設定のとき（画面を留めない）
+  const trackRef = useRef<HTMLDivElement>(null); // 縦に長い外側の箱（この高さの分だけスクロールして回す）
   const stageRef = useRef<HTMLDivElement>(null);
-  const start = useRef<{ x: number; y: number; step: number; moved: boolean } | null>(null);
-  const justDragged = useRef(false);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const barRef = useRef<HTMLSpanElement>(null);
+  const staticPos = useRef(0); // 画面を留めないときの位置
 
-  const go = (to: number) => setPos((p) => ({ active: ((to % n) + n) % n, prev: p.active }));
+  // カードを pos（小数）の位置に並べる。スクロールのたびに呼ばれる
+  const place = (pos: number) => {
+    cardRefs.current.forEach((el, i) => {
+      if (!el) return;
+      const o = ringOffset(i, pos, n);
+      const a = Math.abs(o);
+      const hidden = a > 2.4;
+      el.style.transform = `translateX(${o * 86}%) translateZ(${a * -260}px) rotateY(${Math.max(-2, Math.min(2, o)) * 30}deg)`;
+      el.style.opacity = String(hidden ? 0 : a <= 1 ? 1 - a * 0.3 : 0.7 - (a - 1) * 0.5);
+      el.style.zIndex = String(10 - Math.round(a * 2));
+      el.style.visibility = hidden ? "hidden" : "";
+    });
+    // 下の朱色の線：どこまで回ったか（0〜1）
+    if (barRef.current) barRef.current.style.transform = `scaleX(${n > 1 ? Math.min(pos, n - 1) / (n - 1) : 1})`;
+    const near = ((Math.round(pos) % n) + n) % n;
+    setActive((prev) => (prev === near ? prev : near));
+  };
 
-  // 画面に入っているときだけ、自動で回す
+  // スクロール量 → 何枚目まで回ったか
+  const posFromScroll = () => {
+    const track = trackRef.current;
+    if (!track) return 0;
+    const total = track.offsetHeight - window.innerHeight; // 留まっている間にスクロールできる量
+    const scrolled = Math.min(total, Math.max(0, -track.getBoundingClientRect().top));
+    const p = total > 0 ? (scrolled / total) * (n - 1) : 0;
+    const seg = Math.min(n - 2, Math.floor(p));
+    return seg + hold(p - seg);
+  };
+
+  // i 番目の作品が正面に来るスクロール位置
+  const scrollTopFor = (i: number) => {
+    const track = trackRef.current;
+    if (!track) return 0;
+    const total = track.offsetHeight - window.innerHeight;
+    return window.scrollY + track.getBoundingClientRect().top + (n > 1 ? (i / (n - 1)) * total : 0);
+  };
+
+  // i 番目の作品へ回す（矢印ボタン・下の線・キーボード）
+  const go = (i: number) => {
+    if (pinned) {
+      const to = Math.min(n - 1, Math.max(0, i));
+      window.scrollTo({ top: scrollTopFor(to), behavior: "smooth" });
+    } else {
+      staticPos.current = ((i % n) + n) % n;
+      place(staticPos.current);
+    }
+  };
+
   useEffect(() => {
-    const el = stageRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting), { threshold: 0.3 });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+    if (!pinned) {
+      place(staticPos.current);
+      return;
+    }
+    // スクロールのたびに、次の画面の描画に合わせて（requestAnimationFrame）1 回だけ並べ直す
+    let frame = 0;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => place(posFromScroll()));
+    };
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 設定が変わったときだけ付け直す
+  }, [pinned]);
 
-  const paused = hovered || dragging || !inView;
+  // トラックパッドの横スクロール：縦のスクロールに置き換えて、同じように回す
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    let acc = 0;
+    const onWheel = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return; // 縦のスクロールはそのまま
+      e.preventDefault(); // ブラウザの「戻る」ジェスチャーなどを止める
+      if (pinned) {
+        window.scrollBy(0, e.deltaX * 1.2);
+      } else {
+        // 画面を留めないときは、ある程度横に動かしたら 1 枚回す
+        acc += e.deltaX;
+        if (Math.abs(acc) > 80) {
+          go(staticPos.current + Math.sign(acc));
+          acc = 0;
+        }
+      }
+    };
+    stage.addEventListener("wheel", onWheel, { passive: false });
+    return () => stage.removeEventListener("wheel", onWheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- pinned が変わったときだけ付け直す
+  }, [pinned]);
 
-  // ---- スワイプ（マウスのドラッグでも動く） ----
+  // スマホ・マウスで横にドラッグ：これも縦のスクロールに置き換える
+  const drag = useRef<{ x: number; y: number; last: number; moved: boolean } | null>(null);
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
-    const card = e.currentTarget.querySelector<HTMLElement>("[data-card]");
-    // カード 1 枚分ずらすのに必要な指の移動量（px）
-    const step = (card?.offsetWidth ?? 300) * 0.8;
-    start.current = { x: e.clientX, y: e.clientY, step, moved: false };
+    drag.current = { x: e.clientX, y: e.clientY, last: e.clientX, moved: false };
   };
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const s = start.current;
-    if (!s) return;
-    const dx = e.clientX - s.x;
-    const dy = e.clientY - s.y;
-    if (!s.moved) {
-      // 縦に動かしたなら、ページのスクロールとみなしてカルーセルは動かさない
+    const d = drag.current;
+    if (!d) return;
+    if (!d.moved) {
+      const dx = e.clientX - d.x;
+      const dy = e.clientY - d.y;
+      // 縦に動かしたなら、ふつうのスクロールとしてブラウザに任せる
       if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 6) {
-        start.current = null;
+        drag.current = null;
         return;
       }
       if (Math.abs(dx) < 6) return;
-      s.moved = true;
-      setDragging(true);
+      d.moved = true;
       e.currentTarget.setPointerCapture(e.pointerId);
     }
-    setDrag(dx / s.step);
+    if (pinned) {
+      // 指を左へ動かす → 次の作品へ（カード 1 枚の幅ほど動かすと、だいたい 1 枚回る）
+      const card = cardRefs.current[0];
+      const ratio = STEP_PX / ((card?.offsetWidth ?? 300) * 0.8);
+      window.scrollBy(0, -(e.clientX - d.last) * ratio);
+    }
+    d.last = e.clientX;
   };
   const onPointerEnd = () => {
-    const s = start.current;
-    start.current = null;
-    if (!s?.moved) return;
-    // 少しでも（カード 0.15 枚分以上）動かしたら、その向きに 1 枚以上回す
-    const moved = -drag;
-    const by = Math.abs(moved) < 0.15 ? 0 : Math.sign(moved) * Math.max(1, Math.round(Math.abs(moved)));
-    go(active + by);
-    setDrag(0);
-    setDragging(false);
-    // 指を離した直後に届く「クリック」で、別のカードへ飛ばないようにする
-    justDragged.current = true;
-    setTimeout(() => (justDragged.current = false), 0);
+    const d = drag.current;
+    drag.current = null;
+    if (!d?.moved) return;
+    if (pinned) {
+      // 指を離したら、いちばん近い作品にぴたっと合わせる
+      go(Math.round(posFromScroll()));
+    } else {
+      const dx = d.last - d.x;
+      if (Math.abs(dx) > 40) go(staticPos.current - Math.sign(dx));
+    }
   };
 
   const work = works[active];
 
   return (
+    // 外側の箱を「画面の高さ ＋ 作品の数ぶんのスクロール量」にして、中身を sticky で留める
     <div
+      ref={trackRef}
       role="region"
       aria-roledescription="carousel"
       aria-label="作品の一覧"
-      onPointerEnter={(e) => e.pointerType === "mouse" && setHovered(true)}
-      onPointerLeave={() => setHovered(false)}
+      style={pinned ? { height: `calc(100svh + ${(n - 1) * STEP_PX}px)` } : undefined}
     >
-      {/* ---- カードが回る舞台 ---- */}
-      <div
-        ref={stageRef}
-        tabIndex={0}
-        aria-label="← → キーで作品を切り替え"
-        onKeyDown={(e) => {
-          if (e.key === "ArrowRight") go(active + 1);
-          if (e.key === "ArrowLeft") go(active - 1);
-        }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerEnd}
-        onPointerCancel={onPointerEnd}
-        className={`carousel-stage relative select-none rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-accent/60 ${dragging ? "is-dragging" : ""}`}
-      >
-        {/* 高さを決めるための見えない箱（カードと同じ 4:3） */}
-        <div className="carousel-sizer aspect-[4/3]" aria-hidden="true" />
-        {works.map((w, i) => {
-          const o = ringOffset(i, active, n) + drag;
-          const a = Math.abs(o);
-          // 前回から 2 枚以上ずれた（反対側へ回り込んだ）カードは、横切る動きを見せずに一瞬で移す
-          const jumped = Math.abs(ringOffset(i, active, n) - ringOffset(i, prev, n)) > 1.5;
-          const hidden = a > 2.4;
-          return (
+      <div className={pinned ? "sticky top-0 flex h-svh flex-col justify-center pt-20" : ""}>
+        {/* ---- カードが回る舞台 ---- */}
+        <div
+          ref={stageRef}
+          tabIndex={0}
+          aria-label="← → キーで作品を切り替え"
+          onKeyDown={(e) => {
+            if (e.key === "ArrowRight") go(active + 1);
+            if (e.key === "ArrowLeft") go(active - 1);
+          }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerEnd}
+          onPointerCancel={onPointerEnd}
+          className="carousel-stage relative select-none rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+        >
+          {/* 高さを決めるための見えない箱（カードと同じ 4:3） */}
+          <div className="carousel-sizer aspect-[4/3]" aria-hidden="true" />
+          {works.map((w, i) => (
             <div
               key={w.title}
-              data-card
+              ref={(el) => {
+                cardRefs.current[i] = el;
+              }}
               role="group"
               aria-roledescription="slide"
               aria-label={`${i + 1} / ${n}：${w.title}`}
               aria-hidden={i !== active}
-              onClick={() => {
-                // スワイプした直後の「クリック」は無視。となりのカードを押したら、そのカードを正面へ
-                if (!justDragged.current && i !== active) go(i);
-              }}
-              className={`carousel-card ${jumped ? "no-anim" : ""} ${i === active ? "is-active" : "cursor-pointer"}`}
-              style={{
-                transform: `translateX(${o * 86}%) translateZ(${a * -260}px) rotateY(${Math.max(-2, Math.min(2, o)) * 30}deg)`,
-                opacity: hidden ? 0 : a <= 1 ? 1 - a * 0.3 : 0.7 - (a - 1) * 0.5,
-                zIndex: 10 - Math.round(a * 2),
-                visibility: hidden ? "hidden" : undefined,
-              }}
+              onClick={() => i !== active && go(i)}
+              className={`carousel-card ${i === active ? "" : "cursor-pointer"}`}
             >
               <WorkArt work={w} />
             </div>
-          );
-        })}
-      </div>
-
-      {/* ---- 操作：細い線（どこにいるか＋自動で回るまでの時間）と、左右の矢印 ---- */}
-      <div className="mt-8 flex items-center gap-6">
-        <div className="flex flex-1 gap-2">
-          {works.map((w, i) => (
-            <button
-              key={w.title}
-              type="button"
-              onClick={() => go(i)}
-              aria-label={`${i + 1} 番目の作品：${w.title}`}
-              aria-current={i === active}
-              className="group relative h-6 flex-1"
-            >
-              <span className="absolute inset-x-0 top-1/2 h-px bg-line transition group-hover:bg-foreground/40" />
-              {i === active && (
-                <span
-                  // key を変えると、線のアニメーションが最初からやり直しになる
-                  key={active}
-                  className="carousel-progress absolute inset-x-0 top-1/2 h-px bg-accent"
-                  style={{ animationDuration: `${AUTO_MS}ms`, animationPlayState: paused ? "paused" : "running" }}
-                  // 線が伸びきったら次の作品へ
-                  onAnimationEnd={() => go(active + 1)}
-                />
-              )}
-            </button>
           ))}
         </div>
-        <p className="font-display text-sm tabular-nums text-muted">
-          <span className="text-foreground">{String(active + 1).padStart(2, "0")}</span> / {String(n).padStart(2, "0")}
-        </p>
-        <div className="flex gap-2">
-          {[
-            { label: "前の作品", by: -1, icon: "←" },
-            { label: "次の作品", by: 1, icon: "→" },
-          ].map((b) => (
-            <button
-              key={b.label}
-              type="button"
-              onClick={() => go(active + b.by)}
-              aria-label={b.label}
-              className="grid h-10 w-10 place-items-center rounded-full border border-line text-sm transition hover:border-accent hover:text-accent"
-            >
-              {b.icon}
-            </button>
-          ))}
-        </div>
-      </div>
 
-      {/* ---- 正面の作品の説明。作品が切り替わるたびに、下からふわっと入れ替わる ---- */}
-      <div key={active} className="carousel-detail mt-10" aria-live={paused ? "polite" : "off"}>
-        <p className="font-display text-sm tabular-nums text-muted">
-          {String(active + 1).padStart(2, "0")}
-          {work.sample && <span className="ml-3 font-sans">サンプル</span>}
-        </p>
-        <h3 className="mt-2 text-2xl font-medium">{work.title}</h3>
-        <p className="mt-4 max-w-[36em] text-sm leading-loose text-muted">{work.description}</p>
-        {work.tech.length > 0 && <p className="mt-5 text-sm leading-relaxed text-muted">{work.tech.join(" ／ ")}</p>}
-        {work.url && (
-          <a href={work.url} target="_blank" rel="noopener noreferrer" className="group mt-6 inline-flex items-center gap-2 text-sm">
-            <span className="border-b border-foreground/30 pb-1 transition group-hover:border-accent group-hover:text-accent">
-              {work.url.replace("https://", "")}
-            </span>
-            <span className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true">
-              ↗
-            </span>
-          </a>
-        )}
+        {/* ---- 操作：細い線（どこまで回ったか。押すとその作品へ）と、左右の矢印 ---- */}
+        <div className="mt-6 flex items-center gap-6 sm:mt-8">
+          <div className="relative flex flex-1 gap-2">
+            {works.map((w, i) => (
+              <button
+                key={w.title}
+                type="button"
+                onClick={() => go(i)}
+                aria-label={`${i + 1} 番目の作品：${w.title}`}
+                aria-current={i === active}
+                className="group relative h-6 flex-1"
+              >
+                <span className="absolute inset-x-0 top-1/2 h-px bg-line transition group-hover:bg-foreground/40" />
+              </button>
+            ))}
+            {/* 回った分だけ左から伸びる朱色の線（transform だけで伸ばす） */}
+            <span
+              ref={barRef}
+              className="pointer-events-none absolute inset-x-0 top-1/2 h-px origin-left bg-accent"
+              style={{ transform: "scaleX(0)" }}
+              aria-hidden="true"
+            />
+          </div>
+          <p className="font-display text-sm tabular-nums text-muted">
+            <span className="text-foreground">{String(active + 1).padStart(2, "0")}</span> / {String(n).padStart(2, "0")}
+          </p>
+          <div className="flex gap-2">
+            {[
+              { label: "前の作品", by: -1, icon: "←" },
+              { label: "次の作品", by: 1, icon: "→" },
+            ].map((b) => (
+              <button
+                key={b.label}
+                type="button"
+                onClick={() => go(active + b.by)}
+                aria-label={b.label}
+                className="grid h-10 w-10 place-items-center rounded-full border border-line text-sm transition hover:border-accent hover:text-accent"
+              >
+                {b.icon}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ---- 正面の作品の説明。作品が切り替わるたびに、下からふわっと入れ替わる ---- */}
+        <div key={active} className="carousel-detail mt-6 min-h-[15rem] sm:mt-8" aria-live="polite">
+          <p className="font-display text-sm tabular-nums text-muted">
+            {String(active + 1).padStart(2, "0")}
+            {work.sample && <span className="ml-3 font-sans">サンプル</span>}
+          </p>
+          <h3 className="mt-2 text-xl font-medium sm:text-2xl">{work.title}</h3>
+          <p className="mt-3 max-w-[36em] text-sm leading-loose text-muted">{work.description}</p>
+          {work.tech.length > 0 && <p className="mt-3 text-sm leading-relaxed text-muted">{work.tech.join(" ／ ")}</p>}
+          {work.url && (
+            <a href={work.url} target="_blank" rel="noopener noreferrer" className="group mt-4 inline-flex items-center gap-2 text-sm">
+              <span className="border-b border-foreground/30 pb-1 transition group-hover:border-accent group-hover:text-accent">
+                {work.url.replace("https://", "")}
+              </span>
+              <span className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true">
+                ↗
+              </span>
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
