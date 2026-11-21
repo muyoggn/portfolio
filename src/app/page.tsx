@@ -5,8 +5,7 @@ import ScrollLinked from "@/components/ScrollLinked";
 import ScrollDepth from "@/components/ScrollDepth";
 import Section from "@/components/Section";
 import SpaceGrid from "@/components/SpaceGrid";
-import Tilt from "@/components/Tilt";
-import WorkPreview from "@/components/WorkPreview";
+import WorkCarousel from "@/components/WorkCarousel";
 import {
   certifications,
   education,
@@ -139,44 +138,11 @@ export default function Home() {
             </dl>
           </Section>
 
-          <Section id="works" number="03" title="Works" label="つくったもの">
-            <ol className="space-y-24">
-              {works.map((work, i) => (
-                <li key={work.title}>
-                  <Reveal className="grid items-center gap-10 lg:grid-cols-[1.2fr_1fr]">
-                    {/* マウスを乗せると傾いて、ミニチュアの層が立体的にずれる */}
-                    <Tilt>
-                      <WorkPreview />
-                    </Tilt>
-                    <div>
-                      <p className="font-display text-sm tabular-nums text-muted">
-                        {String(i + 1).padStart(2, "0")}
-                      </p>
-                      <h3 className="mt-2 text-2xl font-medium">{work.title}</h3>
-                      <p className="mt-4 text-sm leading-loose text-muted">{work.description}</p>
-                      {work.tech.length > 0 && (
-                        <p className="mt-5 text-sm leading-relaxed text-muted">{work.tech.join(" ／ ")}</p>
-                      )}
-                      {work.url && (
-                        <a
-                          href={work.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="group mt-6 inline-flex items-center gap-2 text-sm"
-                        >
-                          <span className="border-b border-foreground/30 pb-1 transition group-hover:border-accent group-hover:text-accent">
-                            {work.url.replace("https://", "")}
-                          </span>
-                          <span className="transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true">
-                            ↗
-                          </span>
-                        </a>
-                      )}
-                    </div>
-                  </Reveal>
-                </li>
-              ))}
-            </ol>
+          <Section id="works" number="03" title="Works" label="つくったもの" wide>
+            {/* 作品を横にぐるぐる回して見るカルーセル。作品は profile.ts の works に足していく */}
+            <Reveal>
+              <WorkCarousel works={works} />
+            </Reveal>
           </Section>
 
           <Section id="career" number="04" title="Career" label="経歴">
