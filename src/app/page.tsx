@@ -138,10 +138,22 @@ export default function Home() {
             </dl>
           </Section>
 
-          <Section id="works" number="03" title="Works" label="つくったもの" wide>
-            {/* 作品を横にぐるぐる回して見るカルーセル。ここに来ると画面が留まり、スクロールで回る。作品は profile.ts の works に足していく */}
-            <WorkCarousel works={works} />
-          </Section>
+          {/* Works だけは、見出しもカードといっしょに画面に留めたいので、Section を使わずに書いている。
+              ここに来ると画面が留まり、スクロールでカードの帯が横にスライドする。作品は profile.ts の works に足していく */}
+          <section id="works" className="overflow-x-clip">
+            <WorkCarousel
+              works={works}
+              heading={
+                <header>
+                  <h2 className="font-display text-5xl font-semibold leading-none tracking-[-0.04em] sm:text-6xl">
+                    Works
+                    <sup className="ml-1.5 align-super text-xs font-medium tracking-normal text-accent">03</sup>
+                  </h2>
+                  <p className="mt-4 text-sm tracking-[0.2em] text-muted">つくったもの</p>
+                </header>
+              }
+            />
+          </section>
 
           <Section id="career" number="04" title="Career" label="経歴">
             <div className="grid gap-14 sm:grid-cols-2 sm:gap-10">

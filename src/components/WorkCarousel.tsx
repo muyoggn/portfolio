@@ -5,16 +5,16 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { Work } from "@/data/profile";
 import WorkArt from "@/components/WorkArt";
 
-// 作品を横にぐるぐる回して見られる「カルーセル」です。
+// 作品のカードを横一列の「帯」に並べて、スクロールで横にスライドさせて見る部品です。
 //
 // しくみ：
-// ・作品のカードを、円柱のまわりに並べたように置いています。真ん中のカードが正面、
-//   となりのカードは少し奥に下がって、斜めにこちらを向きます（3D の rotateY と translateZ）。
-// ・スクロールで回ります。Works の場所に来ると画面が留まり（sticky）、そのまま下へスクロールすると
-//   カードが横に回っていきます。最後の作品まで回りきると、留まりが外れて次のセクションへ進みます。
-//   トラックパッドの横スクロールや、スマホで横にスワイプしても同じように回ります。
-// ・「いま何枚目まで回ったか」を小数（pos）で持ち、各カードが正面から何枚ずれているかを計算して、
-//   その分だけ横・奥・斜めにずらします。
+// ・作品のカードを左から順に、すき間をあけて横一列に並べています。真ん中に来たカードが正面で、
+//   となりのカードは少し小さく、うすく見えます。最後のカードの次に最初のカードが来る（ぐるっと回る）ことはありません。
+// ・Works の場所に来ると、見出しごと画面が留まり（sticky）、そのまま下へスクロールすると帯が左へ流れていきます。
+//   最初のカードと最後のカードのところでは少しのあいだ帯が止まり（硬直）、ちゃんと見てから次へ進めます。
+//   トラックパッドの横スクロールや、スマホで横にスワイプしても同じように動きます。
+// ・「いま何枚目まで進んだか」を小数（pos）で持ち、各カードが正面から何枚ずれているかを計算して、
+//   その分だけ横にずらします。
 // ・スクロールの位置にそのまま合わせず、毎コマ少しずつ追いかける（なめらかに遅れてついてくる）ようにして、
 //   速くスクロールしたときは、カードが進む向きに少し傾きます（スクロールの「速さ」を使う）。
 // ・正面のカードを押すと、くるっと裏返って、裏に作品の説明が書いてあります。
@@ -23,15 +23,9 @@ import WorkArt from "@/components/WorkArt";
 //   動かすのは transform と opacity だけなので、ブラウザは描き直さずに済み、なめらかに動きます。
 // ・「動きを減らす」設定の人には、画面を留めず、矢印ボタンでパッと切り替える形にします。
 
-const STEP_PX = 520; // 作品 1 つ分回すのに必要なスクロール量（px）
-
-// 「正面から何枚ずれているか」を、ぐるっと回った近いほうで数える（小数でも OK）。
-// 例：作品が 5 つで正面が 0 番のとき、4 番は「+4 枚」ではなく「-1 枚（左となり）」
-function ringOffset(i: number, pos: number, n: number) {
-  let d = (((i - pos) % n) + n) % n;
-  if (d > n / 2) d -= n;
-  return d;
-}
+const STEP_PX = 520; // 作品 1 つ分進むのに必要なスクロール量（px）
+const HOLD_PX = 360; // 最初と最後のカードで、帯を止めておくスクロール量（px）
+const GAP = 1.12; // となりのカードとの間隔（カードの幅の何倍か。1 より大きいので、すき間があく）
 
 // 作品 1 つ分のスクロールのうち、正面に来たあたりでは「ゆっくり」、間では「速め」に回す。
 // 完全には止めないので、カクッとせず、ずっとぬるっと動き続ける（サイン波で速さに強弱を付けている）
@@ -53,7 +47,7 @@ function useReducedMotion() {
   );
 }
 
-export default function WorkCarousel({ works }: { works: Work[] }) {
+export default function WorkCarousel({ works, heading }: { works: Work[]; heading?: React.ReactNode }) {
   const n = works.length;
   const [active, setActive] = useState(0); // 正面に一番近い作品（説明文の切り替えに使う）
   const pinned = !useReducedMotion(); // false：「動きを減らす」設定のとき（画面を留めない）
@@ -68,19 +62,19 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
   // カードを pos（小数）の位置に並べる。スクロールのたびに呼ばれる
   // vel：1 コマでどれだけ回ったか（スクロールの速さ）。速いほどカードが傾く
   const place = (pos: number, vel = 0) => {
-    const lean = Math.max(-8, Math.min(8, vel * 90)); // 傾き（度）
-    const squeeze = 1 - Math.min(0.06, Math.abs(vel) * 0.8); // 速いときは少しだけ縮める
+    const lean = Math.max(-6, Math.min(6, vel * 70)); // 傾き（度）
     cardRefs.current.forEach((el, i) => {
       if (!el) return;
-      const o = ringOffset(i, pos, n);
+      const o = i - pos; // 正面から何枚ずれているか（右がプラス、左がマイナス）
       const a = Math.abs(o);
-      const hidden = a > 2.4;
-      el.style.transform = `translate3d(0, 0, 0) translateX(${o * 80}%) translateZ(${a * -260}px) rotateY(${Math.max(-2, Math.min(2, o)) * 30 - lean}deg) rotateZ(${lean * 0.25}deg) scale(${squeeze})`;
-      el.style.opacity = String(hidden ? 0 : a <= 1 ? 1 - a * 0.3 : 0.7 - (a - 1) * 0.5);
-      el.style.zIndex = String(10 - Math.round(a * 2));
+      const hidden = a > 2.5;
+      // となりのカードは 12% 小さく、うすく。間隔は GAP なので重ならない
+      const scale = 1 - Math.min(1, a) * 0.12;
+      el.style.transform = `translate3d(${o * GAP * 100}%, 0, 0) rotateY(${-lean}deg) scale(${scale})`;
+      el.style.opacity = String(hidden ? 0 : 1 - Math.min(1, a) * 0.5 - Math.max(0, a - 1) * 0.3);
       el.style.visibility = hidden ? "hidden" : "";
     });
-    const near = ((Math.round(pos) % n) + n) % n;
+    const near = Math.min(n - 1, Math.max(0, Math.round(pos)));
     if (activeRef.current !== near) {
       activeRef.current = near;
       setActive(near);
@@ -92,9 +86,11 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
   const posFromScroll = () => {
     const track = trackRef.current;
     if (!track) return 0;
-    const total = track.offsetHeight - window.innerHeight; // 留まっている間にスクロールできる量
-    const scrolled = Math.min(total, Math.max(0, -track.getBoundingClientRect().top));
-    const p = total > 0 ? (scrolled / total) * (n - 1) : 0;
+    // 留まっている間にスクロールできる量のうち、最初と最後の HOLD_PX は帯を止めておく
+    const total = track.offsetHeight - window.innerHeight - 2 * HOLD_PX;
+    const scrolled = Math.min(total, Math.max(0, -track.getBoundingClientRect().top - HOLD_PX));
+    if (n < 2 || total <= 0) return 0;
+    const p = (scrolled / total) * (n - 1);
     const seg = Math.min(n - 2, Math.floor(p));
     return seg + hold(p - seg);
   };
@@ -103,8 +99,8 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
   const scrollTopFor = (i: number) => {
     const track = trackRef.current;
     if (!track) return 0;
-    const total = track.offsetHeight - window.innerHeight;
-    return window.scrollY + track.getBoundingClientRect().top + (n > 1 ? (i / (n - 1)) * total : 0);
+    const total = track.offsetHeight - window.innerHeight - 2 * HOLD_PX;
+    return window.scrollY + track.getBoundingClientRect().top + HOLD_PX + (n > 1 ? (i / (n - 1)) * total : 0);
   };
 
   // i 番目の作品へ回す（矢印ボタン・下の線・キーボード）
@@ -113,7 +109,7 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
       const to = Math.min(n - 1, Math.max(0, i));
       window.scrollTo({ top: scrollTopFor(to), behavior: "smooth" });
     } else {
-      staticPos.current = ((i % n) + n) % n;
+      staticPos.current = Math.min(n - 1, Math.max(0, i));
       place(staticPos.current);
     }
   };
@@ -240,9 +236,11 @@ export default function WorkCarousel({ works }: { works: Work[] }) {
       role="region"
       aria-roledescription="carousel"
       aria-label="作品の一覧"
-      style={pinned ? { height: `calc(100svh + ${(n - 1) * STEP_PX}px)` } : undefined}
+      style={pinned ? { height: `calc(100svh + ${(n - 1) * STEP_PX + 2 * HOLD_PX}px)` } : undefined}
     >
-      <div className={pinned ? "sticky top-0 flex h-svh flex-col justify-center pt-20" : ""}>
+      <div className={pinned ? "sticky top-0 flex h-svh flex-col justify-center pt-16" : ""}>
+        {/* 見出しもいっしょに画面に留めて、カードを見ている間も「Works」が見えるようにする */}
+        {heading && <div className="mb-6 sm:mb-8">{heading}</div>}
         {/* ---- カードが回る舞台 ---- */}
         <div
           ref={stageRef}
