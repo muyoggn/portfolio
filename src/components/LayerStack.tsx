@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 // 最初の画面の右側に浮かぶ「重なった板」です。1 枚 1 枚が、このページの各セクションへのリンクになっています。
 //   ・マウスを動かすと、板の山全体が少しだけ向きを変える（--mx / --my）
 //   ・板にマウスを乗せると、それより上の板がふわっと持ち上がり、選んだ板が朱色になって顔を出す
-//   ・下へスクロールすると、右へ寄りながら消えていき、右はしの目次（SideNav.tsx）に入れ替わる
+//   ・下へスクロールすると、右はしの目次（SideNav.tsx）の板と入れ替わり、1 枚ずつ右はしへ飛んでいく
 // 3D のライブラリは使わず、CSS の transform だけで作っています（見た目のルールは globals.css）。
 
 const LAYERS = [
@@ -74,7 +74,7 @@ export default function LayerStack({ className = "" }: { className?: string }) {
             }
           >
             {/* 文字は板の「手前のふち」にそって置く。下の板は上の板に隠れるので、ふちの文字だけがのぞいて見える */}
-            <span className="plate-face flex items-end justify-between px-4 pb-2.5 sm:px-5 sm:pb-3">
+            <span data-hero-plate className="plate-face flex items-end justify-between px-4 pb-2.5 sm:px-5 sm:pb-3">
               <span className="font-display text-base font-medium tracking-tight sm:text-lg">{layer.label}</span>
               <span className="font-display text-[11px] tabular-nums tracking-widest opacity-60">
                 {String(i + 1).padStart(2, "0")}
