@@ -23,14 +23,19 @@ import WorkArt from "@/components/WorkArt";
 //   動かすのは transform と opacity だけなので、ブラウザは描き直さずに済み、なめらかに動きます。
 // ・「動きを減らす」設定の人には、画面を留めず、矢印ボタンでパッと切り替える形にします。
 
-const STEP_PX = 520; // 作品 1 つ分進むのに必要なスクロール量（px）
-const HOLD_PX = 360; // 最初と最後のカードで、帯を止めておくスクロール量（px）
+const STEP_PX = 680; // 作品 1 つ分進むのに必要なスクロール量（px）。このうち 4 割は止まっている
+const HOLD_PX = 360; // 最初のカードで、帯を止めておくスクロール量（px）
+const END_HOLD_PX = 560; // 最後のカードで、帯を止めておくスクロール量（px）。最初より長め
 const GAP = 1.12; // となりのカードとの間隔（カードの幅の何倍か。1 より大きいので、すき間があく）
 
-// 作品 1 つ分のスクロールのうち、正面に来たあたりでは「ゆっくり」、間では「速め」に回す。
-// 完全には止めないので、カクッとせず、ずっとぬるっと動き続ける（サイン波で速さに強弱を付けている）
+// 作品 1 つ分のスクロールのうち、はじめと終わりの 2 割ずつ（合わせて 4 割）は帯を止めて、
+// カードが正面でしっかり止まって見えるようにする（カードとカードの間の「硬直」）。
+// 残りの 6 割で、ゆっくり動き出して → ゆっくり止まる曲線（コサインの半周）でとなりへ進む。
+// 止まる・動くの切り替えは、追いかける動き（tick の 8%）がやわらげるので、カクッとはしない
+const PAUSE = 0.2;
 function hold(t: number) {
-  return t - (Math.sin(2 * Math.PI * t) / (2 * Math.PI)) * 0.85;
+  const x = Math.min(1, Math.max(0, (t - PAUSE) / (1 - 2 * PAUSE)));
+  return (1 - Math.cos(Math.PI * x)) / 2;
 }
 
 // 「動きを減らす」設定がオンかどうか。設定が変わったら教えてもらう（useSyncExternalStore）
@@ -86,8 +91,8 @@ export default function WorkCarousel({ works, heading }: { works: Work[]; headin
   const posFromScroll = () => {
     const track = trackRef.current;
     if (!track) return 0;
-    // 留まっている間にスクロールできる量のうち、最初と最後の HOLD_PX は帯を止めておく
-    const total = track.offsetHeight - window.innerHeight - 2 * HOLD_PX;
+    // 留まっている間にスクロールできる量のうち、最初の HOLD_PX と最後の END_HOLD_PX は帯を止めておく
+    const total = track.offsetHeight - window.innerHeight - HOLD_PX - END_HOLD_PX;
     const scrolled = Math.min(total, Math.max(0, -track.getBoundingClientRect().top - HOLD_PX));
     if (n < 2 || total <= 0) return 0;
     const p = (scrolled / total) * (n - 1);
@@ -99,7 +104,7 @@ export default function WorkCarousel({ works, heading }: { works: Work[]; headin
   const scrollTopFor = (i: number) => {
     const track = trackRef.current;
     if (!track) return 0;
-    const total = track.offsetHeight - window.innerHeight - 2 * HOLD_PX;
+    const total = track.offsetHeight - window.innerHeight - HOLD_PX - END_HOLD_PX;
     return window.scrollY + track.getBoundingClientRect().top + HOLD_PX + (n > 1 ? (i / (n - 1)) * total : 0);
   };
 
@@ -236,7 +241,7 @@ export default function WorkCarousel({ works, heading }: { works: Work[]; headin
       role="region"
       aria-roledescription="carousel"
       aria-label="作品の一覧"
-      style={pinned ? { height: `calc(100svh + ${(n - 1) * STEP_PX + 2 * HOLD_PX}px)` } : undefined}
+      style={pinned ? { height: `calc(100svh + ${(n - 1) * STEP_PX + HOLD_PX + END_HOLD_PX}px)` } : undefined}
     >
       <div className={pinned ? "sticky top-0 flex h-svh flex-col justify-center pt-16" : ""}>
         {/* 見出しもいっしょに画面に留めて、カードを見ている間も「Works」が見えるようにする */}
