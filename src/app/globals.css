@@ -57,9 +57,10 @@ html {
   scroll-behavior: smooth;
 }
 
-/* 最初の画面：画面の高さより 560px 長くして、中身を sticky で留めておく（page.tsx） */
+/* 最初の画面：画面の高さぴったり。前は板を横に広げて見せるために 560px 長くしていたが、
+   板はスクロールすると右はしの目次（SideNav.tsx）に移るようになったので、留めておく必要がなくなった */
 .hero-pin {
-  height: calc(100svh + 560px);
+  height: 100svh;
 }
 
 body {
@@ -132,10 +133,16 @@ body {
   transform-origin: left;
 }
 
-/* ヒーロー：板が広がり終わったあと、文字がゆっくり薄くなる */
+/* ヒーロー：スクロールすると、文字がゆっくり薄くなる */
 .hero-fade {
-  /* 板が広がっている間（〜420px）はそのまま見せて、そのあと 300px かけて薄くする */
-  opacity: clamp(0, calc(1 - (var(--sy, 0) - 420) / 300), 1);
+  opacity: clamp(0, calc(1 - var(--sy, 0) / 520), 1);
+}
+/* ヒーローの板：スクロールすると、右の方へ寄りながら小さく・薄くなっていく。
+   ちょうど消えるころに、右はしに小さな板の目次（SideNav.tsx）がすべり込んでくるので、板が端へ移ったように見える */
+.hero-stack-out {
+  --o: min(var(--sy, 0), 380);
+  opacity: clamp(0, calc(1 - var(--o) / 380), 1);
+  transform: translate3d(calc(var(--o) * 0.3px), calc(var(--o) * 0.15px), 0) scale(calc(1 - var(--o) / 1100));
 }
 
 /* 「Scroll」の線：上から下へ、光がすっと流れ落ちる */
@@ -175,23 +182,16 @@ body {
   /* 斜め上から見下ろす角度。--mx / --my はマウスの位置（-0.5〜0.5）で、少しだけ向きが変わる */
   transform: rotateX(calc(56deg - var(--my, 0) * 12deg)) rotateZ(calc(-40deg + var(--mx, 0) * 16deg));
 }
-/* 板どうしの間隔。スクロールすると広がって、重なりがほどけながら横へ広がっていく。
+/* 板どうしの間隔。
    --lift：マウスを乗せた板より上にある板は 1 になり、上へ持ち上がって、選んだ板の表面が見えるようになる */
 .plate {
-  --gap: calc(46px + min(var(--sy, 0), 700) * 0.04px);
-  /* --fan：スクロールし始めてから 480px までで 0 → 1。板がトランプを広げるように横へずれていく量。
-     この間は最初の画面が sticky で留まっているので、広がる様子が全部見える */
-  --fan: calc(min(var(--sy, 0), 480) / 480);
-  /* --spread：板 1 枚あたりのずらし幅。真ん中の板（--z が 2）を中心に、上の板は右へ、下の板は左へ（スマホでは小さめ） */
-  --spread: calc(var(--fan) * (var(--z) - 2) * min(80px, 6.5vw));
+  --gap: 46px;
   position: absolute;
   inset: 0;
   display: block;
   transform-style: preserve-3d;
-  /* 板の山は斜めに置いてある（.stack の rotateZ(-40deg)）ので、画面の「真横」に動かすには
-     板の向きでいう (cos40°, sin40°) ≒ (0.77, 0.64) の方向にずらす。そのあと translateZ で高さを付ける */
-  transform: translate3d(calc(var(--spread) * 0.77), calc(var(--spread) * 0.64), 0)
-    translateZ(calc(var(--z) * var(--gap) + var(--lift, 0) * 90px));
+  /* translateZ で高さを付けて積み重ねる */
+  transform: translateZ(calc(var(--z) * var(--gap) + var(--lift, 0) * 90px));
   transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
   outline: none;
 }
@@ -240,6 +240,97 @@ body {
   background: var(--plate-shadow);
   filter: blur(28px);
   transform: translateZ(-60px);
+}
+
+/* ===== 右はしの目次（SideNav.tsx） ============================
+   最初の画面の板を小さくして縦に並べたもの。板は同じ角度（rotateX 56° / rotateZ -40°）で寝かせてある。
+   ============================================================= */
+.side-item {
+  /* 最初は画面の右の外に隠しておき、.is-shown が付くと 1 枚ずつ（--i の順に少し遅れて）すべり込む */
+  transform: translateX(140%);
+  opacity: 0;
+  transition:
+    transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) calc(var(--i) * 60ms),
+    opacity 0.5s ease calc(var(--i) * 60ms);
+}
+.side-nav:not(.is-shown) {
+  pointer-events: none;
+}
+.side-nav.is-shown .side-item {
+  transform: none;
+  opacity: 1;
+}
+.side-label {
+  color: var(--muted);
+  transition: color 0.3s ease, transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.side-item:hover .side-label,
+.side-item.is-active .side-label {
+  color: var(--foreground);
+}
+.mini-scene {
+  display: block;
+  width: 48px;
+  height: 34px;
+  perspective: 400px;
+}
+.mini-plate {
+  position: relative;
+  display: block;
+  margin: 2px auto 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--plate);
+  border: 1px solid var(--plate-edge);
+  transform-style: preserve-3d;
+  transform: rotateX(56deg) rotateZ(-40deg);
+  transition:
+    transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 0.3s ease,
+    border-color 0.3s ease;
+}
+/* 板の厚み（最初の画面の板と同じ作り方） */
+.mini-plate::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--plate-side);
+  transform: translateZ(-3px);
+}
+/* マウスを乗せた板は少し持ち上がる */
+.side-item:hover .mini-plate {
+  transform: rotateX(56deg) rotateZ(-40deg) translateZ(6px);
+}
+/* 今いるセクションの板：朱色になって、少し持ち上がる */
+.side-item.is-active .mini-plate {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: rotateX(56deg) rotateZ(-40deg) translateZ(10px);
+}
+.side-item.is-active .side-label {
+  transform: translateX(-4px);
+}
+/* スマホ：板をさらに小さくして、画面のふちに細く並べる */
+@media (max-width: 639px) {
+  .mini-scene {
+    width: 26px;
+    height: 20px;
+    perspective: 240px;
+  }
+  .mini-plate {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+  }
+  .mini-plate::after {
+    transform: translateZ(-2px);
+  }
+  /* 名前は出さない（本文と重なって読みにくくなるため）。今いる場所は板の色だけで示す */
+  .side-label {
+    display: none;
+  }
 }
 
 /* ===== 方眼のトンネル（SpaceGrid.tsx） =========================
@@ -434,25 +525,24 @@ body {
   .scroll-cue {
     animation: none;
   }
-  .plate {
-    --gap: 46px;
-  }
   .reveal.slide {
     transform: none;
   }
   .title-slide {
     translate: none;
   }
-  /* 板は横に広げず、マス目もスクロールで動かさない */
-  .plate {
-    --fan: 0;
-  }
+  /* マス目もスクロールで動かさない */
   .tunnel-wall {
     --run: 0px;
   }
-  /* 板が広がらないので、最初の画面を留めておく必要もない */
-  .hero-pin {
-    height: auto;
+  /* 板は動かさずにその場で薄くするだけ。目次の板も、すべり込まずにパッと出す */
+  .hero-stack-out {
+    transform: none;
+  }
+  .side-item,
+  .mini-plate,
+  .side-label {
+    transition: none;
   }
   /* カルーセルの説明文も、パッと切り替える */
   .carousel-detail {

@@ -4,6 +4,7 @@ import Reveal from "@/components/Reveal";
 import ScrollLinked from "@/components/ScrollLinked";
 import ScrollDepth from "@/components/ScrollDepth";
 import Section from "@/components/Section";
+import SideNav from "@/components/SideNav";
 import SpaceGrid from "@/components/SpaceGrid";
 import WorkCarousel from "@/components/WorkCarousel";
 import {
@@ -55,10 +56,11 @@ export default function Home() {
       <ScrollDepth />
       {/* 背景の、上下左右が方眼の壁になったトンネル。画面に固定され、文字の後ろに見える */}
       <SpaceGrid />
+      {/* 右はしの目次。最初の画面の板が、スクロールするとここへ移ってくる */}
+      <SideNav />
       <main id="top" className="flex-1">
         {/* ヒーロー（最初の画面）：左に名前、右に宙に浮かぶ板の重なり。置く情報はこれだけにして、余白で見せる。
-            section を画面より 560px 長くして、中身を sticky（その場に貼り付く）にしています。
-            こうすると、スクロールし始めてもしばらく最初の画面がその場に留まり、その間に板が横へ広がる様子が見えます */}
+            スクロールすると板は右へ寄りながら消え、代わりに右はしの目次（SideNav）として小さな板が並ぶ */}
         <section className="hero-pin relative">
           <div className="sticky top-0 flex h-[100svh] items-center overflow-hidden">
           <div className="mx-auto grid w-full max-w-6xl items-center gap-2 px-6 pb-16 pt-24 sm:gap-6 sm:pb-24 sm:pt-28 lg:grid-cols-[1.1fr_1fr]">
@@ -89,7 +91,9 @@ export default function Home() {
               )}
             </div>
             <Reveal delay={300}>
-              <LayerStack className="mt-16 h-[300px] sm:mt-14 sm:h-[460px] lg:mt-0" />
+              <div className="hero-stack-out">
+                <LayerStack className="mt-16 h-[300px] sm:mt-14 sm:h-[460px] lg:mt-0" />
+              </div>
             </Reveal>
           </div>
           {/* 下へ読み進められることを、細い線が流れ落ちる動きでそっと知らせる */}
