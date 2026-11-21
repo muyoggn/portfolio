@@ -20,16 +20,16 @@ type SectionProps = {
 export default function Section({ id, number, title, label, children }: SectionProps) {
   return (
     // overflow-x-clip：左にずらした見出しを、セクションのふちで切り取る（そこから出てくるように見える）
-    <section id={id} className="scroll-mt-20 overflow-x-clip py-28 sm:py-40">
+    <section id={id} className="scroll-mt-20 overflow-x-clip py-20 sm:py-24">
       <ScrollLinked start={1} end={0.2} className="grid gap-10 md:grid-cols-[16rem_1fr] md:gap-12">
         <Reveal className="flip">
           {/* md:sticky：そのセクションを読んでいる間は、見出しが左に残る */}
           <header className="md:sticky md:top-28">
-            <h2 className="title-slide font-display text-6xl font-semibold leading-none tracking-[-0.04em] sm:text-7xl">
+            <h2 className="title-slide font-display text-5xl font-semibold leading-none tracking-[-0.04em] sm:text-6xl">
               {title}
               <sup className="ml-1.5 align-super text-xs font-medium tracking-normal text-accent">{number}</sup>
             </h2>
-            <p className="mt-5 tracking-[0.2em] text-muted">{label}</p>
+            <p className="mt-4 text-sm tracking-[0.2em] text-muted">{label}</p>
           </header>
         </Reveal>
         <div className="min-w-0">{children}</div>

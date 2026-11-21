@@ -28,7 +28,7 @@ function Timeline({ heading, items }: { heading: string; items: CareerItem[] }) 
         <span className="h-2 w-2 rounded-[2px] bg-accent" aria-hidden="true" />
         {heading}
       </h3>
-      <ol className="relative ml-1.5 space-y-10 pl-8">
+      <ol className="relative ml-1.5 space-y-8 pl-8">
         {/* 灰色の線（まだ読んでいない部分）と、その上に伸びる朱色の線 */}
         <span className="absolute inset-y-1 left-0 w-px bg-line" aria-hidden="true" />
         <span className="stem absolute inset-y-1 left-0 w-px bg-accent" aria-hidden="true" />
@@ -108,7 +108,7 @@ export default function Home() {
 
         <div className="mx-auto w-full max-w-6xl px-6">
           <Section id="about" number="01" title="About" label="自己紹介">
-            <Reveal className="max-w-[36em] space-y-7 text-[1.0625rem] leading-[2.1]">
+            <Reveal className="max-w-[36em] space-y-6 text-[15px] leading-[2.1]">
               {profile.about.map((text) => (
                 <p key={text}>{text}</p>
               ))}
@@ -120,11 +120,11 @@ export default function Home() {
             <dl className="border-b border-line">
               {skills.map((group, i) => (
                 // slide：下からではなく、左から横にすべり込んでくる（globals.css の .reveal.slide）
-                <Reveal key={group.category} delay={i * 90} className="slide relative grid gap-3 py-8 sm:grid-cols-[11rem_1fr]">
+                <Reveal key={group.category} delay={i * 90} className="slide relative grid gap-3 py-6 sm:grid-cols-[11rem_1fr]">
                   <span className="rule absolute inset-x-0 top-0 h-px bg-line" aria-hidden="true" />
                   <dt className="text-sm text-muted">{group.category}</dt>
                   <dd>
-                    <ul className="flex flex-wrap items-center gap-x-8 gap-y-3 text-lg">
+                    <ul className="flex flex-wrap items-center gap-x-7 gap-y-3">
                       {group.items.map((item) => (
                         <li key={item.name} className="flex items-baseline gap-2">
                           {item.name}
@@ -152,8 +152,8 @@ export default function Home() {
                       <p className="font-display text-sm tabular-nums text-muted">
                         {String(i + 1).padStart(2, "0")}
                       </p>
-                      <h3 className="mt-2 text-3xl font-medium">{work.title}</h3>
-                      <p className="mt-4 leading-loose text-muted">{work.description}</p>
+                      <h3 className="mt-2 text-2xl font-medium">{work.title}</h3>
+                      <p className="mt-4 text-sm leading-loose text-muted">{work.description}</p>
                       {work.tech.length > 0 && (
                         <p className="mt-5 text-sm leading-relaxed text-muted">{work.tech.join(" ／ ")}</p>
                       )}
@@ -199,7 +199,7 @@ export default function Home() {
                 href={profile.links.github}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group mt-3 inline-flex items-baseline gap-3 font-display text-3xl font-medium tracking-[-0.03em] sm:text-6xl"
+                className="group mt-3 inline-flex items-baseline gap-3 font-display text-3xl font-medium tracking-[-0.03em] sm:text-5xl"
               >
                 <span className="bg-[linear-gradient(var(--accent),var(--accent))] bg-[length:0%_2px] bg-left-bottom bg-no-repeat pb-1 transition-[background-size] duration-500 group-hover:bg-[length:100%_2px]">
                   {profile.links.github.replace("https://", "")}
