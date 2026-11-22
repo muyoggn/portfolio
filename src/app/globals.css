@@ -19,7 +19,7 @@
   --plate-edge: rgba(23, 24, 27, 0.1); /* 板のふち */
   --plate-side: #d9d7d1; /* 板の厚み（側面） */
   --plate-shadow: rgba(23, 24, 27, 0.22); /* 床に落ちる影 */
-  --grid: rgba(23, 24, 27, 0.075); /* 背景のマス目の線（SpaceGrid.tsx） */
+  --grid: rgba(23, 24, 27, 0.1); /* 背景のマス目の線（SpaceGrid.tsx） */
 }
 
 /* ダークモード：夜は黒地に、板がうっすら光る。<html data-theme="dark"> のときに使われます。
@@ -35,7 +35,7 @@
   --plate-edge: rgba(255, 255, 255, 0.14);
   --plate-side: #1f2126;
   --plate-shadow: rgba(0, 0, 0, 0.6);
-  --grid: rgba(255, 255, 255, 0.06);
+  --grid: rgba(255, 255, 255, 0.075);
 }
 
 /* Tailwind の「dark:〜」クラスも、OS の設定ではなく data-theme に合わせて効くようにする */
@@ -269,13 +269,14 @@ body {
   justify-content: center;
   width: 100%;
   height: 100%;
-  perspective: 190px;
+  perspective: 176px; /* 30px の板に対して。最初の画面の板（一辺 272px に 1600px）と同じ比率 */
   opacity: 0;
   will-change: transform;
 }
 .mini-plate {
   position: relative;
   display: block;
+  flex-shrink: 0; /* 飛んでいる途中に入れ物より大きくなっても、縮められないようにする */
   width: 30px;
   height: 30px;
   border-radius: 7%; /* 最初の画面の板（256px に 18px）と同じ割合 */
@@ -295,7 +296,19 @@ body {
   inset: 0;
   border-radius: inherit;
   background: var(--plate-side);
-  transform: translateZ(-1px);
+  transform: translateZ(calc(var(--th, 1px) * -1));
+}
+/* 板の上の文字（飛んでいる途中だけ見える。SideNav.tsx が大きさと濃さを変える） */
+.mini-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 1.1em 0.65em;
+  white-space: nowrap;
+  opacity: 0;
+  color: var(--foreground);
 }
 /* マウスを乗せた板は少し持ち上がる */
 .side-item:hover .mini-plate {
@@ -317,7 +330,7 @@ body {
     height: 20px;
   }
   .mini-fly {
-    perspective: 145px; /* スマホの最初の画面の板（幅 176px に 1600px）と同じ比率 */
+    perspective: 137px; /* スマホの最初の画面の板（一辺 187px に 1600px）と同じ比率 */
   }
   .mini-plate {
     width: 16px;
@@ -332,7 +345,7 @@ body {
 /* ===== 方眼のトンネル（SpaceGrid.tsx） =========================
    上下左右の 4 枚の壁に方眼紙の模様を貼り、奥へ続く四角いトンネルを作っています。
    ・.space：画面全体に固定した入れ物。perspective（遠近法）で奥ほど小さく見せる
-   ・.tunnel-wall：方眼紙。linear-gradient で 1px の線を縦横にくり返し引いている
+   ・.tunnel-wall：方眼紙。linear-gradient で 細い線（--stroke）を縦横にくり返し引いている
    ・4 枚とも、画面のふち（手前）から奥（--depth の深さ）まで伸びるように 90° 回して置く
      手前のふちが画面のふちにぴったり重なるので、画面全体がトンネルの入り口になる
    ・mask で、奥へ行くほど線を薄くして、トンネルの先が明るく抜けて見えるようにする
@@ -345,6 +358,9 @@ body {
 .space {
   --depth: 2600px; /* トンネルの奥行き */
   --cell: 80px; /* マス目 1 つの大きさ */
+  /* 線の太さ。壁は奥へ向かって強く傾いているので、1px だと遠くの線が画面の 1 画素より細くなり、
+     ところどころ線が途切れて消えて見えていた。2px にすると、遠くでも途切れずに残る */
+  --stroke: 2px;
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -356,8 +372,8 @@ body {
 .tunnel-wall {
   position: absolute;
   background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    linear-gradient(var(--grid) var(--stroke), transparent var(--stroke)),
+    linear-gradient(90deg, var(--grid) var(--stroke), transparent var(--stroke));
   background-size: var(--cell) var(--cell);
   will-change: transform; /* 「この要素は transform が変わる」とブラウザに先に伝えて、なめらかに動かしてもらう */
 }
