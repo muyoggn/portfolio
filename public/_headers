@@ -1,4 +1,11 @@
 # https://developers.cloudflare.com/workers/static-assets/headers
 # https://opennext.js.org/cloudflare/caching#static-assets-caching
+# Cloudflare が直接配る静的ファイル（画像・JS・CSS など）に付けるヘッダーです。
+# ページ本体（HTML）のセキュリティヘッダーは next.config.ts で設定しています。
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
 /_next/static/*
   Cache-Control: public,max-age=31536000,immutable
