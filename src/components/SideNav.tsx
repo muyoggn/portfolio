@@ -39,13 +39,29 @@ export default function SideNav() {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const flies = Array.from(nav.querySelectorAll<HTMLElement>(".mini-fly"));
     const labels = Array.from(nav.querySelectorAll<HTMLElement>(".side-label"));
+    const plates = flies.map((el) => el.firstElementChild as HTMLElement);
+    const faces = plates.map((el) => el.firstElementChild as HTMLElement);
     const root = document.documentElement;
     let frame = 0;
     // 定位置にあるときの板の見た目の位置と大きさ（右はしの目次は画面に固定なので、画面の大きさが変わったときだけ測り直す）
     let home: DOMRect[] = [];
+    // mini：定位置の板の一辺 / heroSize：最初の画面の板の一辺 / heroFont：最初の画面の板の文字の大きさ
+    let mini = 30;
+    let heroSize = 272;
+    let heroFont = 18;
     const measure = () => {
-      flies.forEach((el) => (el.style.transform = "none"));
-      home = flies.map((el) => el.firstElementChild!.getBoundingClientRect());
+      flies.forEach((el, i) => {
+        el.style.transform = "none";
+        el.style.perspective = "";
+        plates[i].style.width = plates[i].style.height = "";
+      });
+      home = plates.map((el) => el.getBoundingClientRect());
+      mini = plates[0].offsetWidth;
+      const hero = document.querySelector<HTMLElement>("[data-hero-plate]");
+      if (hero) {
+        heroSize = hero.offsetWidth;
+        heroFont = parseFloat(getComputedStyle(hero.firstElementChild as HTMLElement).fontSize);
+      }
     };
 
     const update = () => {
@@ -62,7 +78,12 @@ export default function SideNav() {
       if (t >= 1 || reduced) {
         flies.forEach((el, i) => {
           el.style.transform = "";
+          el.style.perspective = "";
           el.style.opacity = t > 0 ? "1" : "0";
+          const plate = plates[i];
+          plate.style.width = plate.style.height = plate.style.fontSize = "";
+          plate.style.removeProperty("--th");
+          faces[i].style.opacity = "";
           labels[i].style.opacity = "";
         });
       } else {
@@ -75,13 +96,25 @@ export default function SideNav() {
           if (!hero || hero.width === 0 || !to) return;
           // この板の進み具合。上の板ほど先に出発する
           const p = ease(clamp01((move - i * STAGGER) / (1 - STAGGER * (ITEMS.length - 1))));
-          // sx, sy：最初の画面の板が、定位置の板の横・縦それぞれ何倍の大きさか / dx, dy：中心どうしのずれ
-          // （遠近の付き方が少し違うので、横と縦を別々に合わせて、形がぴったり重なるようにする）
-          const sx = hero.width / to.width;
-          const sy = hero.height / to.height;
+          // 板は transform の scale で大きくするのではなく、本当の大きさ（幅・高さ）を変える。
+          // scale だと、ふちの線や板の厚みまでいっしょに太くなって、最初の画面の板と見た目が変わってしまうため。
+          // size0：最初の画面の板と同じ見た目の大きさになる一辺。そこから定位置の大きさ（mini）へ縮める
+          const size0 = mini * (hero.width / to.width);
+          const size = size0 + (mini - size0) * p;
+          const k = size / heroSize; // 最初の画面の板に対する大きさの比
+          const plate = plates[i];
+          plate.style.width = plate.style.height = `${size}px`;
+          plate.style.fontSize = `${heroFont * k}px`; // 板の上の文字も、板といっしょに縮める
+          plate.style.setProperty("--th", `${Math.max(1, 5 * k)}px`); // 板の厚み（最初の画面の板は 5px）
+          // 遠近の強さも板の大きさに合わせる（最初の画面は、一辺に対して 1600px）
+          el.style.perspective = `${size * (1600 / heroSize)}px`;
+          // 縦の見え方のわずかな違いだけ、縦方向の scale で合わせる（着くまでに 1 に戻す）
+          const fix = hero.height / hero.width / (to.height / to.width);
           const dx = hero.left + hero.width / 2 - (to.left + to.width / 2);
           const dy = hero.top + hero.height / 2 - (to.top + to.height / 2);
-          el.style.transform = `translate3d(${dx * (1 - p)}px, ${dy * (1 - p)}px, 0) scale(${sx + (1 - sx) * p}, ${sy + (1 - sy) * p})`;
+          el.style.transform = `translate3d(${dx * (1 - p)}px, ${dy * (1 - p)}px, 0) scaleY(${fix + (1 - fix) * p})`;
+          // 板の上の文字（About など）は、板が小さくなるにつれて消していく
+          faces[i].style.opacity = String(1 - clamp01(p / 0.5));
           el.style.opacity = String(swap);
           // 項目の名前は、板が着く直前にふわっと出す
           labels[i].style.opacity = String(clamp01((p - 0.75) / 0.25));
@@ -144,7 +177,15 @@ export default function SideNav() {
                 {/* mini-scene：定位置（動かさない入れ物） / mini-fly：最初の画面から飛んでくる部分 / mini-plate：板そのもの */}
                 <span className="mini-scene" aria-hidden="true">
                   <span className="mini-fly">
-                    <span className="mini-plate" />
+                    <span className="mini-plate">
+                      {/* 最初の画面の板と同じ文字。飛んでいる途中だけ見えて、小さくなると消える */}
+                      <span className="mini-face">
+                        <span className="font-display font-medium tracking-tight">{item.label}</span>
+                        <span className="font-display text-[0.62em] tabular-nums tracking-widest opacity-60">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                      </span>
+                    </span>
                   </span>
                 </span>
               </a>
