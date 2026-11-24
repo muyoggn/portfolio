@@ -441,6 +441,12 @@ body {
 .carousel-stage {
   /* カードの幅。画面の横幅の 56% か、画面の高さに収まる大きさの、小さいほう（スマホは 84%） */
   --w: min(56%, calc((100svh - 450px) * 4 / 3));
+  /* 上下のゆとり。カードがふわっと浮いたり、裏返るときに手前の辺が大きくなったりしても、
+     下の mask-image（ふちを薄くする仕組み）は「舞台の箱の中」しか描かないので、箱からはみ出た部分が切れてしまう。
+     そこで箱を上下に --pad だけ広げ（padding）、同じだけ負の margin で引っこめて、見た目の位置は変えずに描ける範囲だけ広げる */
+  --pad: calc(var(--w) * 0.16);
+  padding-block: var(--pad);
+  margin-block: calc(var(--pad) * -1);
   perspective: 1400px;
   touch-action: pan-y; /* 縦のスクロールはブラウザに任せ、横の動きだけカルーセルで受け取る */
   /* 左右のはしに行ったカードは、ふちに向かって薄く消えていく */
@@ -457,7 +463,7 @@ body {
 }
 .carousel-card {
   position: absolute;
-  top: 0;
+  top: var(--pad); /* 上のゆとりの分だけ下げて、もとの位置に置く */
   left: calc(50% - var(--w) / 2);
   width: var(--w);
   transform-style: preserve-3d; /* 中で裏返す動きを、立体のまま見せる */
